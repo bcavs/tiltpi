@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tilt Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #1a1008;
+            color: #e8d5b5;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ── Bubble canvas ── */
+        #bubbles {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .content { position: relative; z-index: 1; }
+
+        /* ── Header ── */
+        .header {
+            padding: 28px 24px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(212, 160, 72, 0.15);
+            background: linear-gradient(180deg, rgba(30, 20, 8, 0.9) 0%, transparent 100%);
+        }
+        .header h1 {
+            font-size: 1.6rem; font-weight: 700;
+            color: #d4a048;
+            letter-spacing: 0.02em;
+        }
+        .header .sub {
+            color: #8a7a60; font-size: 0.82rem; margin-top: 6px;
+        }
+        .brew-name {
+            color: #c49a3c; font-size: 0.95rem; margin-top: 4px; font-weight: 500;
+        }
+
+        /* ── Cards row ── */
+        .cards {
+            display: flex; gap: 16px; padding: 24px;
+            justify-content: center; flex-wrap: wrap;
+        }
+
+        /* ── Gauge card ── */
+        .gauge-card {
+            background: rgba(30, 22, 10, 0.85);
+            border: 1px solid rgba(212, 160, 72, 0.12);
+            border-radius: 16px;
+            padding: 20px 28px 16px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            min-width: 190px;
+        }
+        .gauge-card .label {
+            color: #8a7a60; font-size: 0.75rem;
+            text-transform: uppercase; letter-spacing: 0.08em;
+            margin-bottom: 12px;
+        }
+        .gauge-wrap {
+            position: relative;
+            width: 140px; height: 90px;
+            margin: 0 auto;
+        }
+        .gauge-wrap canvas { width: 140px; height: 90px; }
+        .gauge-value {
+            position: absolute;
+            bottom: 2px; left: 0; right: 0;
+            text-align: center;
+            font-size: 1.5rem; font-weight: 700;
+        }
+        .gauge-value.gravity { color: #d4a048; }
+        .gauge-value.temp { color: #e07832; }
+        .gauge-sub {
+            color: #8a7a60; font-size: 0.8rem; margin-top: 4px;
+        }
+
+        /* ── ABV / Status cards ── */
+        .info-card {
+            background: rgba(30, 22, 10, 0.85);
+            border: 1px solid rgba(212, 160, 72, 0.12);
+            border-radius: 16px;
+            padding: 20px 28px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            min-width: 160px;
+        }
+        .info-card .label {
+            color: #8a7a60; font-size: 0.75rem;
+            text-transform: uppercase; letter-spacing: 0.08em;
+        }
+        .info-card .value {
+            font-size: 1.8rem; font-weight: 700; margin-top: 8px;
+        }
+        .info-card .value.abv { color: #d4a048; }
+        .info-card .value.status { font-size: 1rem; }
+        .status-active { color: #48d470; }
+        .status-slowing { color: #d4a048; }
+        .status-complete { color: #e07832; }
+        .info-card .sub { color: #8a7a60; font-size: 0.8rem; margin-top: 4px; }
+
+        /* ── Fermentation progress ── */
+        .progress-section {
+            padding: 0 24px 8px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        .progress-header {
+            display: flex; justify-content: space-between;
+            font-size: 0.78rem; color: #8a7a60;
+            margin-bottom: 6px;
+        }
+        .progress-bar-bg {
+            height: 10px;
+            background: rgba(212, 160, 72, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(212, 160, 72, 0.1);
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            background: linear-gradient(90deg, #d4a048, #e07832);
+            transition: width 1s ease;
+            box-shadow: 0 0 12px rgba(212, 160, 72, 0.4);
+        }
+        .progress-label {
+            text-align: center;
+            font-size: 0.82rem;
+            color: #c49a3c;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        /* ── Charts ── */
+        .chart-container { padding: 12px 24px 20px; }
+        .chart-container canvas {
+            background: rgba(30, 22, 10, 0.85);
+            border-radius: 12px;
+            border: 1px solid rgba(212, 160, 72, 0.1);
+        }
+
+        /* ── No data state ── */
+        .no-data {
+            text-align: center; padding: 100px 24px;
+            color: #5a4a30; font-size: 1.1rem;
+        }
+        .no-data .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+
+        /* ── Responsive ── */
+        @media (max-width: 600px) {
+            .cards { padding: 16px 12px; gap: 10px; }
+            .gauge-card, .info-card { min-width: 140px; padding: 16px; }
+            .gauge-wrap { width: 110px; height: 72px; }
+            .gauge-value { font-size: 1.2rem; }
+            .chart-container { padding: 8px 12px 16px; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bubbles"></canvas>
+    <div class="content">
+        <div class="header">
+            <h1>Tilt Hydrometer</h1>
+            <div class="brew-name" id="brew-name"></div>
+            <div class="sub" id="last-updated">Waiting for data...</div>
+        </div>
+        <div id="main-content" class="no-data">
+            <div class="icon">&#127866;</div>
+            No readings yet. Make sure the Tilt monitor is running.
+        </div>
+    </div>
+
+    <script>
+    /* ════════════════════════════════════
+       BUBBLE ANIMATION
+       ════════════════════════════════════ */
+    const bubbleCanvas = document.getElementById('bubbles');
+    const bCtx = bubbleCanvas.getContext('2d');
+    let bubbles = [];
+
+    function resizeBubbleCanvas() {
+        bubbleCanvas.width = window.innerWidth;
+        bubbleCanvas.height = window.innerHeight;
+    }
+    resizeBubbleCanvas();
+    window.addEventListener('resize', resizeBubbleCanvas);
+
+    class Bubble {
+        constructor() { this.reset(true); }
+        reset(init) {
+            this.x = Math.random() * bubbleCanvas.width;
+            this.y = init ? Math.random() * bubbleCanvas.height : bubbleCanvas.height + 20;
+            this.r = 2 + Math.random() * 6;
+            this.speed = 0.3 + Math.random() * 0.8;
+            this.wobbleAmp = 0.3 + Math.random() * 0.8;
+            this.wobbleFreq = 0.01 + Math.random() * 0.02;
+            this.phase = Math.random() * Math.PI * 2;
+            this.opacity = 0.04 + Math.random() * 0.1;
+        }
+        update() {
+            this.y -= this.speed;
+            this.x += Math.sin(this.phase) * this.wobbleAmp;
+            this.phase += this.wobbleFreq;
+            if (this.y < -20) this.reset(false);
+        }
+        draw(ctx) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(212, 160, 72, ${this.opacity})`;
+            ctx.fill();
+            // highlight
+            ctx.beginPath();
+            ctx.arc(this.x - this.r * 0.3, this.y - this.r * 0.3, this.r * 0.3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 220, 140, ${this.opacity * 0.6})`;
+            ctx.fill();
+        }
+    }
+
+    for (let i = 0; i < 60; i++) bubbles.push(new Bubble());
+
+    function animateBubbles() {
+        bCtx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
+        bubbles.forEach(b => { b.update(); b.draw(bCtx); });
+        requestAnimationFrame(animateBubbles);
+    }
+    animateBubbles();
+
+    /* ════════════════════════════════════
+       GAUGE DRAWING
+       ════════════════════════════════════ */
+    function drawGauge(canvasId, value, min, max, color, colorDim) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const w = 140, h = 90;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.scale(dpr, dpr);
+
+        const cx = w / 2, cy = h - 5;
+        const radius = 58;
+        const startAngle = Math.PI;
+        const endAngle = 2 * Math.PI;
+        const pct = Math.min(1, Math.max(0, (value - min) / (max - min)));
+        const valueAngle = startAngle + pct * Math.PI;
+
+        // Background arc
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, startAngle, endAngle);
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = colorDim;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // Value arc
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, startAngle, valueAngle);
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = color;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // Glow
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, Math.max(startAngle, valueAngle - 0.1), valueAngle);
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = color;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+
+    /* ════════════════════════════════════
+       CHARTS & DATA
+       ════════════════════════════════════ */
+    let gravityChart, tempChart, initialized = false;
+
+    const chartColors = {
+        gravity: '#d4a048',
+        gravityBg: 'rgba(212, 160, 72, 0.1)',
+        temp: '#e07832',
+        tempBg: 'rgba(224, 120, 50, 0.1)',
+        grid: 'rgba(212, 160, 72, 0.08)',
+        tick: '#5a4a30',
+        label: '#8a7a60',
+    };
+
+    function initDashboard(container) {
+        initialized = true;
+        container.className = 'content-inner';
+        container.innerHTML = `
+            <div class="cards">
+                <div class="gauge-card">
+                    <div class="label">Specific Gravity</div>
+                    <div class="gauge-wrap">
+                        <canvas id="sgGauge"></canvas>
+                        <div class="gauge-value gravity" id="sg">--</div>
+                    </div>
+                    <div class="gauge-sub" id="sg-sub"></div>
+                </div>
+                <div class="gauge-card">
+                    <div class="label">Temperature</div>
+                    <div class="gauge-wrap">
+                        <canvas id="tempGauge"></canvas>
+                        <div class="gauge-value temp" id="temp">--</div>
+                    </div>
+                    <div class="gauge-sub" id="temp-sub"></div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Est. ABV</div>
+                    <div class="value abv" id="abv">--</div>
+                    <div class="sub" id="abv-sub"></div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Fermentation</div>
+                    <div class="value status" id="ferm-status">--</div>
+                    <div class="sub" id="ferm-sub"></div>
+                </div>
+            </div>
+            <div class="progress-section">
+                <div class="progress-header">
+                    <span id="og-label">OG: --</span>
+                    <span id="fg-label">Target FG: --</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progress-fill" style="width: 0%"></div>
+                </div>
+                <div class="progress-label" id="progress-label"></div>
+            </div>
+            <div class="chart-container"><canvas id="gravityChart" height="130"></canvas></div>
+            <div class="chart-container"><canvas id="tempChart" height="130"></canvas></div>
+        `;
+
+        const chartOpts = (label) => ({
+            responsive: true,
+            animation: { duration: 600 },
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true, text: label,
+                    color: chartColors.label,
+                    font: { size: 13, family: 'Inter', weight: 500 },
+                    padding: { top: 12, bottom: 8 }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: chartColors.tick, maxTicksLimit: 8, font: { size: 10 } },
+                    grid: { color: chartColors.grid }
+                },
+                y: {
+                    ticks: { color: chartColors.tick, font: { size: 10 } },
+                    grid: { color: chartColors.grid }
+                }
+            }
+        });
+
+        gravityChart = new Chart(document.getElementById('gravityChart'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [], borderColor: chartColors.gravity, borderWidth: 2,
+                    pointRadius: 0, fill: true,
+                    backgroundColor: chartColors.gravityBg,
+                    tension: 0.3
+                }]
+            },
+            options: chartOpts('Specific Gravity')
+        });
+
+        tempChart = new Chart(document.getElementById('tempChart'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [], borderColor: chartColors.temp, borderWidth: 2,
+                    pointRadius: 0, fill: true,
+                    backgroundColor: chartColors.tempBg,
+                    tension: 0.3
+                }]
+            },
+            options: chartOpts('Temperature (\u00b0F)')
+        });
+    }
+
+    function getFermentationStatus(readings) {
+        if (readings.length < 2) return { label: 'Waiting', cls: 'status-active', detail: 'Collecting data...' };
+
+        const recent = readings.slice(-12);
+        const older = readings.slice(-24, -12);
+        if (older.length === 0) return { label: 'Active', cls: 'status-active', detail: 'Fermentation started' };
+
+        const recentAvg = recent.reduce((s, r) => s + r.gravity, 0) / recent.length;
+        const olderAvg = older.reduce((s, r) => s + r.gravity, 0) / older.length;
+        const drop = olderAvg - recentAvg;
+
+        if (drop < 0.0005) return { label: 'Complete', cls: 'status-complete', detail: 'Gravity stable' };
+        if (drop < 0.002) return { label: 'Slowing', cls: 'status-slowing', detail: 'Nearing completion' };
+        return { label: 'Active', cls: 'status-active', detail: `Dropping ~${(drop * 1000).toFixed(1)} pts/cycle` };
+    }
+
+    async function fetchData() {
+        try {
+            const res = await fetch('/api/readings');
+            const data = await res.json();
+            if (!data.length) return;
+
+            const content = document.getElementById('main-content');
+            if (!initialized) initDashboard(content);
+
+            const latest = data[data.length - 1];
+            const og = data[0].gravity;
+            const sg = latest.gravity;
+            const abv = (og - sg) * 131.25;
+            const targetFg = 1.010;
+            const progress = Math.min(100, Math.max(0, ((og - sg) / (og - targetFg)) * 100));
+
+            // Gauges
+            drawGauge('sgGauge', sg, 1.000, 1.080, '#d4a048', 'rgba(212,160,72,0.12)');
+            drawGauge('tempGauge', latest.temp_f, 55, 85, '#e07832', 'rgba(224,120,50,0.12)');
+
+            document.getElementById('sg').textContent = sg.toFixed(3);
+            document.getElementById('sg-sub').textContent = `OG: ${og.toFixed(3)}`;
+            document.getElementById('temp').textContent = `${latest.temp_f}\u00b0F`;
+            document.getElementById('temp-sub').textContent = `${latest.temp_c}\u00b0C`;
+
+            // ABV
+            document.getElementById('abv').textContent = `${abv.toFixed(1)}%`;
+            document.getElementById('abv-sub').textContent = `from ${og.toFixed(3)}`;
+
+            // Fermentation status
+            const status = getFermentationStatus(data);
+            const statusEl = document.getElementById('ferm-status');
+            statusEl.textContent = status.label;
+            statusEl.className = `value status ${status.cls}`;
+            document.getElementById('ferm-sub').textContent = status.detail;
+
+            // Progress bar
+            document.getElementById('og-label').textContent = `OG: ${og.toFixed(3)}`;
+            document.getElementById('fg-label').textContent = `Target FG: ${targetFg.toFixed(3)}`;
+            document.getElementById('progress-fill').style.width = `${progress}%`;
+            document.getElementById('progress-label').textContent = `${progress.toFixed(0)}% attenuation`;
+
+            // Timestamp
+            document.getElementById('last-updated').textContent =
+                `Last reading: ${new Date(latest.timestamp).toLocaleString()}`;
+            document.getElementById('brew-name').textContent = `Tilt ${latest.color}`;
+
+            // Charts
+            const labels = data.map(r => {
+                const d = new Date(r.timestamp);
+                return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                    + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+            });
+
+            gravityChart.data.labels = labels;
+            gravityChart.data.datasets[0].data = data.map(r => r.gravity);
+            gravityChart.update('none');
+
+            tempChart.data.labels = labels;
+            tempChart.data.datasets[0].data = data.map(r => r.temp_f);
+            tempChart.update('none');
+
+        } catch(e) { console.error('Fetch error:', e); }
+    }
+
+    fetchData();
+    setInterval(fetchData, 5000);
+    </script>
+</body>
+</html>
