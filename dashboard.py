@@ -33,7 +33,7 @@ HTML = """
         .card .unit { color: #888; font-size: 0.9rem; }
         .gravity .value { color: #60a5fa; }
         .temp .value { color: #f97316; }
-        .status .value { color: #34d399; font-size: 1rem; }
+        .status .value { color: #34d398; font-size: 1rem; }
         .chart-container { padding: 8px 24px 24px; }
         canvas { background: #181a24; border-radius: 12px; border: 1px solid #1e2130; }
         .no-data { text-align: center; padding: 80px 24px; color: #555; font-size: 1.1rem; }
@@ -127,16 +127,19 @@ HTML = """
 </html>
 """
 
-@app.route('/')
+
+@app.route("/")
 def index():
     return render_template_string(HTML)
 
-@app.route('/api/readings')
+
+@app.route("/api/readings")
 def readings():
     if os.path.exists(LOG_FILE):
         with open(LOG_FILE) as f:
             return jsonify(json.load(f))
     return jsonify([])
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
