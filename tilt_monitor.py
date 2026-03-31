@@ -3,6 +3,7 @@
 
 import asyncio
 import json
+import os
 import time
 from datetime import datetime
 from aioblescan import create_bt_socket, BLEScanner
@@ -20,7 +21,9 @@ TILT_UUIDS = {
     "a495bb80-c5b1-4b44-b512-1370f02d74de": "Pink",
 }
 
-LOG_FILE = "/home/ben/tilt-monitor/tilt_log.json"
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+os.makedirs(DATA_DIR, exist_ok=True)
+LOG_FILE = os.path.join(DATA_DIR, "tilt_log.json")
 readings = []
 
 
