@@ -1,0 +1,13 @@
+[Unit]
+Description=Tilt Hydrometer Web Dashboard
+After=network.target
+
+[Service]
+ExecStart=/home/ben/Desktop/tilt-monitor/venv/bin/python /home/ben/Desktop/tilt-monitor/dashboard.py
+WorkingDirectory=/home/ben/Desktop/tilt-monitor
+User=ben
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

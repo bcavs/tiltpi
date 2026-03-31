@@ -1,0 +1,12 @@
+[Unit]
+Description=Tilt Hydrometer BLE Monitor
+After=bluetooth.target
+
+[Service]
+ExecStart=/home/ben/Desktop/tilt-monitor/venv/bin/python /home/ben/Desktop/tilt-monitor/tilt_monitor.py
+WorkingDirectory=/home/ben/Desktop/tilt-monitor
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
