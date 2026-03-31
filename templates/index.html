@@ -27,6 +27,43 @@
             z-index: 0;
         }
 
+        /* ── Cheers overlay ── */
+        #cheers-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 100;
+            pointer-events: none;
+        }
+        .cheers-text {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem; font-weight: 700;
+            color: #d4a048;
+            text-shadow: 0 0 40px rgba(212, 160, 72, 0.6), 0 0 80px rgba(212, 160, 72, 0.3);
+            opacity: 0;
+            animation: cheersIn 3s ease forwards;
+        }
+        @keyframes cheersIn {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            40% { transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -60%) scale(1); }
+        }
+        .confetti-piece {
+            position: absolute;
+            width: 8px; height: 8px;
+            border-radius: 2px;
+            opacity: 0;
+            animation: confettiFall 3s ease forwards;
+        }
+        @keyframes confettiFall {
+            0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+            100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
+        }
+
         .content { position: relative; z-index: 1; }
 
         /* ── Header ── */
@@ -46,7 +83,69 @@
         }
         .brew-name {
             color: #c49a3c; font-size: 0.95rem; margin-top: 4px; font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s;
         }
+        .brew-name:hover { color: #e8c060; }
+
+        /* ── Settings modal ── */
+        .modal-backdrop {
+            display: none;
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 50;
+            backdrop-filter: blur(4px);
+        }
+        .modal-backdrop.open { display: flex; align-items: center; justify-content: center; }
+        .modal {
+            background: #1e160c;
+            border: 1px solid rgba(212, 160, 72, 0.2);
+            border-radius: 16px;
+            padding: 28px;
+            width: 90%; max-width: 400px;
+        }
+        .modal h2 {
+            color: #d4a048; font-size: 1.1rem; margin-bottom: 20px;
+        }
+        .modal label {
+            display: block; color: #8a7a60; font-size: 0.78rem;
+            text-transform: uppercase; letter-spacing: 0.06em;
+            margin-bottom: 4px; margin-top: 14px;
+        }
+        .modal label:first-of-type { margin-top: 0; }
+        .modal input {
+            width: 100%; padding: 10px 12px;
+            background: rgba(212, 160, 72, 0.06);
+            border: 1px solid rgba(212, 160, 72, 0.15);
+            border-radius: 8px;
+            color: #e8d5b5; font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .modal input:focus { border-color: rgba(212, 160, 72, 0.4); }
+        .modal input::placeholder { color: #5a4a30; }
+        .modal-actions {
+            display: flex; gap: 10px; margin-top: 22px;
+            justify-content: flex-end;
+        }
+        .btn {
+            padding: 8px 20px; border-radius: 8px;
+            font-size: 0.85rem; font-weight: 500;
+            cursor: pointer; border: none;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #d4a048; color: #1a1008;
+        }
+        .btn-primary:hover { background: #e0b060; }
+        .btn-ghost {
+            background: transparent; color: #8a7a60;
+            border: 1px solid rgba(212, 160, 72, 0.15);
+        }
+        .btn-ghost:hover { border-color: rgba(212, 160, 72, 0.3); color: #c49a3c; }
 
         /* ── Cards row ── */
         .cards {
@@ -63,6 +162,11 @@
             text-align: center;
             backdrop-filter: blur(10px);
             min-width: 190px;
+            transition: border-color 0.3s;
+        }
+        .gauge-card.temp-alert {
+            border-color: rgba(220, 60, 60, 0.5);
+            box-shadow: 0 0 20px rgba(220, 60, 60, 0.15);
         }
         .gauge-card .label {
             color: #8a7a60; font-size: 0.75rem;
@@ -83,11 +187,21 @@
         }
         .gauge-value.gravity { color: #d4a048; }
         .gauge-value.temp { color: #e07832; }
+        .gauge-value.temp-danger { color: #dc3c3c; }
         .gauge-sub {
             color: #8a7a60; font-size: 0.8rem; margin-top: 4px;
         }
+        .temp-warning {
+            color: #dc3c3c; font-size: 0.75rem;
+            margin-top: 4px; font-weight: 600;
+            animation: pulse 1.5s ease infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
 
-        /* ── ABV / Status cards ── */
+        /* ── ABV / Status / ETA cards ── */
         .info-card {
             background: rgba(30, 22, 10, 0.85);
             border: 1px solid rgba(212, 160, 72, 0.12);
@@ -105,6 +219,7 @@
             font-size: 1.8rem; font-weight: 700; margin-top: 8px;
         }
         .info-card .value.abv { color: #d4a048; }
+        .info-card .value.eta { color: #60a5d4; font-size: 1.4rem; }
         .info-card .value.status { font-size: 1rem; }
         .status-active { color: #48d470; }
         .status-slowing { color: #d4a048; }
@@ -144,6 +259,13 @@
             font-weight: 500;
         }
 
+        /* ── Toolbar ── */
+        .toolbar {
+            display: flex; justify-content: center; gap: 10px;
+            padding: 8px 24px 16px;
+        }
+        .toolbar .btn { font-size: 0.78rem; padding: 6px 16px; }
+
         /* ── Charts ── */
         .chart-container { padding: 12px 24px 20px; }
         .chart-container canvas {
@@ -166,15 +288,42 @@
             .gauge-wrap { width: 110px; height: 72px; }
             .gauge-value { font-size: 1.2rem; }
             .chart-container { padding: 8px 12px 16px; }
+            .cheers-text { font-size: 2.5rem; }
+            .modal { padding: 20px; }
         }
     </style>
 </head>
 <body>
     <canvas id="bubbles"></canvas>
+
+    <!-- Cheers overlay -->
+    <div id="cheers-overlay">
+        <div class="cheers-text">Cheers!</div>
+    </div>
+
+    <!-- Settings modal -->
+    <div class="modal-backdrop" id="settings-modal">
+        <div class="modal">
+            <h2>Brew Settings</h2>
+            <label for="cfg-name">Brew Name</label>
+            <input id="cfg-name" type="text" placeholder="Dad's IPA, Batch #12">
+            <label for="cfg-fg">Target Final Gravity</label>
+            <input id="cfg-fg" type="number" step="0.001" placeholder="1.010">
+            <label for="cfg-temp-low">Min Temp (&deg;F)</label>
+            <input id="cfg-temp-low" type="number" step="1" placeholder="60">
+            <label for="cfg-temp-high">Max Temp (&deg;F)</label>
+            <input id="cfg-temp-high" type="number" step="1" placeholder="75">
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeSettings()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+            </div>
+        </div>
+    </div>
+
     <div class="content">
         <div class="header">
             <h1>Tilt Hydrometer</h1>
-            <div class="brew-name" id="brew-name"></div>
+            <div class="brew-name" id="brew-name" onclick="openSettings()" title="Click to edit brew settings"></div>
             <div class="sub" id="last-updated">Waiting for data...</div>
         </div>
         <div id="main-content" class="no-data">
@@ -184,6 +333,81 @@
     </div>
 
     <script>
+    /* ════════════════════════════════════
+       BREW CONFIG
+       ════════════════════════════════════ */
+    let brewConfig = { brew_name: '', target_fg: 1.010, temp_low: 60, temp_high: 75 };
+
+    async function loadConfig() {
+        try {
+            const res = await fetch('/api/config');
+            brewConfig = await res.json();
+        } catch(e) {}
+    }
+
+    function openSettings() {
+        document.getElementById('cfg-name').value = brewConfig.brew_name || '';
+        document.getElementById('cfg-fg').value = brewConfig.target_fg || 1.010;
+        document.getElementById('cfg-temp-low').value = brewConfig.temp_low || 60;
+        document.getElementById('cfg-temp-high').value = brewConfig.temp_high || 75;
+        document.getElementById('settings-modal').classList.add('open');
+    }
+
+    function closeSettings() {
+        document.getElementById('settings-modal').classList.remove('open');
+    }
+
+    async function saveSettings() {
+        brewConfig.brew_name = document.getElementById('cfg-name').value;
+        brewConfig.target_fg = parseFloat(document.getElementById('cfg-fg').value) || 1.010;
+        brewConfig.temp_low = parseFloat(document.getElementById('cfg-temp-low').value) || 60;
+        brewConfig.temp_high = parseFloat(document.getElementById('cfg-temp-high').value) || 75;
+        try {
+            await fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(brewConfig),
+            });
+        } catch(e) {}
+        closeSettings();
+        fetchData();
+    }
+
+    /* ════════════════════════════════════
+       CHEERS ANIMATION
+       ════════════════════════════════════ */
+    let cheersShown = false;
+
+    function showCheers() {
+        if (cheersShown) return;
+        cheersShown = true;
+        const overlay = document.getElementById('cheers-overlay');
+        overlay.style.display = 'block';
+
+        // Spawn confetti
+        const colors = ['#d4a048', '#e07832', '#48d470', '#60a5d4', '#dc3c3c', '#c49a3c', '#e8c060'];
+        for (let i = 0; i < 80; i++) {
+            const piece = document.createElement('div');
+            piece.className = 'confetti-piece';
+            piece.style.left = Math.random() * 100 + '%';
+            piece.style.top = '-10px';
+            piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            piece.style.animationDelay = (Math.random() * 1.5) + 's';
+            piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+            piece.style.width = (5 + Math.random() * 8) + 'px';
+            piece.style.height = (5 + Math.random() * 8) + 'px';
+            overlay.appendChild(piece);
+        }
+
+        // Speed up bubbles temporarily
+        bubbles.forEach(b => { b.speed *= 3; b.opacity = Math.min(0.3, b.opacity * 3); });
+        setTimeout(() => {
+            bubbles.forEach(b => { b.speed /= 3; b.opacity /= 3; });
+        }, 3000);
+
+        setTimeout(() => { overlay.style.display = 'none'; }, 4000);
+    }
+
     /* ════════════════════════════════════
        BUBBLE ANIMATION
        ════════════════════════════════════ */
@@ -221,7 +445,6 @@
             ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(212, 160, 72, ${this.opacity})`;
             ctx.fill();
-            // highlight
             ctx.beginPath();
             ctx.arc(this.x - this.r * 0.3, this.y - this.r * 0.3, this.r * 0.3, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(255, 220, 140, ${this.opacity * 0.6})`;
@@ -258,7 +481,6 @@
         const pct = Math.min(1, Math.max(0, (value - min) / (max - min)));
         const valueAngle = startAngle + pct * Math.PI;
 
-        // Background arc
         ctx.beginPath();
         ctx.arc(cx, cy, radius, startAngle, endAngle);
         ctx.lineWidth = 10;
@@ -266,7 +488,6 @@
         ctx.lineCap = 'round';
         ctx.stroke();
 
-        // Value arc
         ctx.beginPath();
         ctx.arc(cx, cy, radius, startAngle, valueAngle);
         ctx.lineWidth = 10;
@@ -274,7 +495,6 @@
         ctx.lineCap = 'round';
         ctx.stroke();
 
-        // Glow
         ctx.shadowColor = color;
         ctx.shadowBlur = 15;
         ctx.beginPath();
@@ -306,7 +526,7 @@
         container.className = 'content-inner';
         container.innerHTML = `
             <div class="cards">
-                <div class="gauge-card">
+                <div class="gauge-card" id="sg-card">
                     <div class="label">Specific Gravity</div>
                     <div class="gauge-wrap">
                         <canvas id="sgGauge"></canvas>
@@ -314,13 +534,14 @@
                     </div>
                     <div class="gauge-sub" id="sg-sub"></div>
                 </div>
-                <div class="gauge-card">
+                <div class="gauge-card" id="temp-card">
                     <div class="label">Temperature</div>
                     <div class="gauge-wrap">
                         <canvas id="tempGauge"></canvas>
                         <div class="gauge-value temp" id="temp">--</div>
                     </div>
                     <div class="gauge-sub" id="temp-sub"></div>
+                    <div class="temp-warning" id="temp-warning" style="display:none"></div>
                 </div>
                 <div class="info-card">
                     <div class="label">Est. ABV</div>
@@ -332,6 +553,11 @@
                     <div class="value status" id="ferm-status">--</div>
                     <div class="sub" id="ferm-sub"></div>
                 </div>
+                <div class="info-card">
+                    <div class="label">Est. Time Left</div>
+                    <div class="value eta" id="eta">--</div>
+                    <div class="sub" id="eta-sub"></div>
+                </div>
             </div>
             <div class="progress-section">
                 <div class="progress-header">
@@ -342,6 +568,10 @@
                     <div class="progress-bar-fill" id="progress-fill" style="width: 0%"></div>
                 </div>
                 <div class="progress-label" id="progress-label"></div>
+            </div>
+            <div class="toolbar">
+                <button class="btn btn-ghost" onclick="openSettings()">Brew Settings</button>
+                <button class="btn btn-ghost" onclick="window.location='/api/export.csv'">Export CSV</button>
             </div>
             <div class="chart-container"><canvas id="gravityChart" height="130"></canvas></div>
             <div class="chart-container"><canvas id="tempChart" height="130"></canvas></div>
@@ -416,6 +646,28 @@
         return { label: 'Active', cls: 'status-active', detail: `Dropping ~${(drop * 1000).toFixed(1)} pts/cycle` };
     }
 
+    function estimateTimeLeft(readings, targetFg) {
+        if (readings.length < 24) return { text: '--', detail: 'Need more data' };
+
+        const recent = readings.slice(-24);
+        const first = recent[0];
+        const last = recent[recent.length - 1];
+        const timeDiffHrs = (new Date(last.timestamp) - new Date(first.timestamp)) / 3600000;
+        if (timeDiffHrs < 1) return { text: '--', detail: 'Need more data' };
+
+        const gravityDrop = first.gravity - last.gravity;
+        if (gravityDrop <= 0.0005) return { text: 'Done', detail: 'Gravity stable' };
+
+        const ratePerHr = gravityDrop / timeDiffHrs;
+        const remaining = last.gravity - targetFg;
+        if (remaining <= 0) return { text: 'Done', detail: 'Target reached' };
+
+        const hoursLeft = remaining / ratePerHr;
+        if (hoursLeft > 240) return { text: `${Math.round(hoursLeft / 24)}d`, detail: `~${(ratePerHr * 24 * 1000).toFixed(1)} pts/day` };
+        if (hoursLeft > 48) return { text: `${Math.round(hoursLeft / 24)}d ${Math.round(hoursLeft % 24)}h`, detail: `~${(ratePerHr * 24 * 1000).toFixed(1)} pts/day` };
+        return { text: `${Math.round(hoursLeft)}h`, detail: `~${(ratePerHr * 24 * 1000).toFixed(1)} pts/day` };
+    }
+
     async function fetchData() {
         try {
             const res = await fetch('/api/readings');
@@ -429,12 +681,33 @@
             const og = data[0].gravity;
             const sg = latest.gravity;
             const abv = (og - sg) * 131.25;
-            const targetFg = 1.010;
+            const targetFg = brewConfig.target_fg || 1.010;
             const progress = Math.min(100, Math.max(0, ((og - sg) / (og - targetFg)) * 100));
 
             // Gauges
             drawGauge('sgGauge', sg, 1.000, 1.080, '#d4a048', 'rgba(212,160,72,0.12)');
-            drawGauge('tempGauge', latest.temp_f, 55, 85, '#e07832', 'rgba(224,120,50,0.12)');
+
+            const tempOutOfRange = latest.temp_f < brewConfig.temp_low || latest.temp_f > brewConfig.temp_high;
+            const tempColor = tempOutOfRange ? '#dc3c3c' : '#e07832';
+            const tempColorDim = tempOutOfRange ? 'rgba(220,60,60,0.12)' : 'rgba(224,120,50,0.12)';
+            drawGauge('tempGauge', latest.temp_f, 55, 85, tempColor, tempColorDim);
+
+            // Temp alert styling
+            const tempCard = document.getElementById('temp-card');
+            const tempValueEl = document.getElementById('temp');
+            const tempWarning = document.getElementById('temp-warning');
+            if (tempOutOfRange) {
+                tempCard.classList.add('temp-alert');
+                tempValueEl.className = 'gauge-value temp-danger';
+                tempWarning.style.display = 'block';
+                tempWarning.textContent = latest.temp_f < brewConfig.temp_low
+                    ? `Below ${brewConfig.temp_low}\u00b0F!`
+                    : `Above ${brewConfig.temp_high}\u00b0F!`;
+            } else {
+                tempCard.classList.remove('temp-alert');
+                tempValueEl.className = 'gauge-value temp';
+                tempWarning.style.display = 'none';
+            }
 
             document.getElementById('sg').textContent = sg.toFixed(3);
             document.getElementById('sg-sub').textContent = `OG: ${og.toFixed(3)}`;
@@ -452,16 +725,29 @@
             statusEl.className = `value status ${status.cls}`;
             document.getElementById('ferm-sub').textContent = status.detail;
 
+            // ETA
+            const eta = estimateTimeLeft(data, targetFg);
+            document.getElementById('eta').textContent = eta.text;
+            document.getElementById('eta-sub').textContent = eta.detail;
+
             // Progress bar
             document.getElementById('og-label').textContent = `OG: ${og.toFixed(3)}`;
             document.getElementById('fg-label').textContent = `Target FG: ${targetFg.toFixed(3)}`;
             document.getElementById('progress-fill').style.width = `${progress}%`;
             document.getElementById('progress-label').textContent = `${progress.toFixed(0)}% attenuation`;
 
-            // Timestamp
+            // Cheers!
+            if (status.label === 'Complete' && sg <= targetFg + 0.002) {
+                showCheers();
+            }
+
+            // Header
+            const displayName = brewConfig.brew_name
+                ? `${brewConfig.brew_name} \u2022 Tilt ${latest.color}`
+                : `Tilt ${latest.color}`;
+            document.getElementById('brew-name').textContent = displayName;
             document.getElementById('last-updated').textContent =
                 `Last reading: ${new Date(latest.timestamp).toLocaleString()}`;
-            document.getElementById('brew-name').textContent = `Tilt ${latest.color}`;
 
             // Charts
             const labels = data.map(r => {
@@ -481,7 +767,8 @@
         } catch(e) { console.error('Fetch error:', e); }
     }
 
-    fetchData();
+    // Init
+    loadConfig().then(() => fetchData());
     setInterval(fetchData, 5000);
     </script>
 </body>
