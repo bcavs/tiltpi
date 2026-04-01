@@ -303,6 +303,111 @@
         }
         .no-data .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
 
+        /* ── Brew controls ── */
+        .brew-controls {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .brew-controls.visible { display: flex; }
+        .brew-picker {
+            padding: 6px 12px;
+            background: rgba(212, 160, 72, 0.06);
+            border: 1px solid rgba(212, 160, 72, 0.15);
+            border-radius: 8px;
+            color: #e8d5b5;
+            font-size: 0.82rem;
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
+        }
+        .brew-picker option { background: #1e160c; color: #e8d5b5; }
+        .btn-sm { font-size: 0.75rem; padding: 5px 12px; }
+        .read-only-banner {
+            text-align: center;
+            padding: 8px;
+            background: rgba(96, 165, 212, 0.1);
+            border-bottom: 1px solid rgba(96, 165, 212, 0.2);
+            color: #60a5d4;
+            font-size: 0.82rem;
+        }
+
+        /* ── History view ── */
+        .history-view {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .history-header h2 {
+            color: #d4a048;
+            font-size: 1.2rem;
+        }
+        .brew-card {
+            background: rgba(30, 22, 10, 0.85);
+            border: 1px solid rgba(212, 160, 72, 0.12);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 12px;
+            backdrop-filter: blur(10px);
+            transition: border-color 0.3s;
+        }
+        .brew-card:hover { border-color: rgba(212, 160, 72, 0.3); }
+        .brew-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .brew-card-name {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #d4a048;
+        }
+        .brew-card-status {
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+        .brew-card-status.completed {
+            background: rgba(72, 212, 112, 0.1);
+            color: #48d470;
+        }
+        .brew-card-status.active {
+            background: rgba(212, 160, 72, 0.1);
+            color: #d4a048;
+        }
+        .brew-card-details {
+            color: #8a7a60;
+            font-size: 0.82rem;
+            line-height: 1.6;
+        }
+        .brew-card-stats {
+            display: flex;
+            gap: 16px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        .brew-card-stat {
+            color: #c49a3c;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+        .brew-card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
         /* ── Responsive ── */
         @media (max-width: 550px) {
             .cards { padding: 16px 12px; gap: 10px; }
@@ -316,6 +421,8 @@
             .modal { padding: 20px; }
             .progress-section { padding: 0 12px 8px; }
             .toolbar { padding: 8px 12px 16px; }
+            .history-view { padding: 16px 12px; }
+            .brew-card-stats { gap: 10px; }
         }
     </style>
 </head>
@@ -351,7 +458,15 @@
             <h1>Tilt Hydrometer</h1>
             <div class="brew-name" id="brew-name" onclick="openSettings()" title="Click to edit brew settings"></div>
             <div class="sub" id="last-updated">Waiting for data...</div>
+            <div class="brew-controls" id="brew-controls">
+                <select class="brew-picker" id="brew-picker" onchange="switchBrew(this.value)">
+                    <option value="">Current Brew</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" id="btn-start-brew" onclick="startNewBrew()">Start New Brew</button>
+                <button class="btn btn-ghost btn-sm" id="btn-end-brew" onclick="endCurrentBrew()">End Brew</button>
+            </div>
         </div>
+        <div class="read-only-banner" id="read-only-banner" style="display:none"></div>
         <div id="main-content" class="no-data">
             <div class="icon">&#127866;</div>
             No readings yet. Make sure the Tilt monitor is running.
@@ -360,9 +475,12 @@
 
     <script>
     /* ════════════════════════════════════
-       BREW CONFIG
+       BREW STATE & CONFIG
        ════════════════════════════════════ */
     let brewConfig = { brew_name: '', target_fg: 1.010, temp_low: 60, temp_high: 75 };
+    let viewingBrewId = null;  // null = active brew
+    let allBrews = [];
+    let pollInterval = null;
 
     async function loadConfig() {
         try {
@@ -371,7 +489,88 @@
         } catch(e) {}
     }
 
+    async function loadBrews() {
+        try {
+            const res = await fetch('/api/brews');
+            allBrews = await res.json();
+            const picker = document.getElementById('brew-picker');
+            // Keep the first "Current Brew" option, remove the rest
+            while (picker.options.length > 1) picker.remove(1);
+            allBrews.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.id;
+                const status = b.status === 'active' ? '' : ` (${b.status})`;
+                opt.textContent = (b.name || `Brew #${b.id}`) + status;
+                picker.appendChild(opt);
+            });
+            document.getElementById('brew-controls').classList.add('visible');
+        } catch(e) {}
+    }
+
+    function switchBrew(brewId) {
+        const banner = document.getElementById('read-only-banner');
+        if (brewId && brewId !== '') {
+            viewingBrewId = parseInt(brewId);
+            const brew = allBrews.find(b => b.id === viewingBrewId);
+            const isActive = brew && brew.status === 'active';
+            if (isActive) {
+                // Viewing the active brew — not read-only
+                banner.style.display = 'none';
+                document.getElementById('btn-end-brew').style.display = '';
+                document.getElementById('btn-start-brew').style.display = '';
+                if (!pollInterval) pollInterval = setInterval(fetchData, 5000);
+            } else {
+                // Viewing a past brew — read-only
+                banner.textContent = `Viewing: ${brew ? brew.name || 'Brew #' + brew.id : 'Past brew'} (read-only)`;
+                banner.style.display = 'block';
+                document.getElementById('btn-end-brew').style.display = 'none';
+                document.getElementById('btn-start-brew').style.display = 'none';
+                if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+            }
+        } else {
+            viewingBrewId = null;
+            banner.style.display = 'none';
+            document.getElementById('btn-end-brew').style.display = '';
+            document.getElementById('btn-start-brew').style.display = '';
+            if (!pollInterval) pollInterval = setInterval(fetchData, 5000);
+        }
+        fetchData();
+    }
+
+    async function startNewBrew() {
+        if (!confirm('Start a new brew? This will end the current brew if one is active.')) return;
+        try {
+            await fetch('/api/brews/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({}),
+            });
+            viewingBrewId = null;
+            document.getElementById('brew-picker').value = '';
+            document.getElementById('read-only-banner').style.display = 'none';
+            await loadBrews();
+            await loadConfig();
+            fetchData();
+        } catch(e) { console.error('Failed to start brew:', e); }
+    }
+
+    async function endCurrentBrew() {
+        const active = allBrews.find(b => b.status === 'active');
+        if (!active) { alert('No active brew to end.'); return; }
+        if (!confirm(`End "${active.name || 'Brew #' + active.id}"?`)) return;
+        try {
+            await fetch(`/api/brews/${active.id}/end`, { method: 'POST' });
+            await loadBrews();
+            fetchData();
+        } catch(e) { console.error('Failed to end brew:', e); }
+    }
+
     function openSettings() {
+        // Block settings for past (non-active) brews
+        if (viewingBrewId !== null) {
+            const brew = allBrews.find(b => b.id === viewingBrewId);
+            if (brew && brew.status !== 'active') return;
+        }
         document.getElementById('cfg-name').value = brewConfig.brew_name || '';
         document.getElementById('cfg-fg').value = brewConfig.target_fg || 1.010;
         document.getElementById('cfg-temp-low').value = brewConfig.temp_low || 60;
@@ -396,6 +595,79 @@
             });
         } catch(e) {}
         closeSettings();
+        fetchData();
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function showHistory() {
+        const content = document.getElementById('main-content');
+        // Stop polling
+        if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+
+        let html = `
+            <div class="history-view">
+                <div class="history-header">
+                    <h2>Brew History</h2>
+                    <button class="btn btn-ghost btn-sm" onclick="backToDashboard()">Back to Dashboard</button>
+                </div>`;
+
+        if (allBrews.length === 0) {
+            html += '<p style="color:#5a4a30;text-align:center">No brews yet.</p>';
+        } else {
+            allBrews.forEach(b => {
+                const name = escapeHtml(b.name || `Brew #${b.id}`);
+                const started = b.started_at ? new Date(b.started_at).toLocaleDateString() : '—';
+                const ended = b.ended_at ? new Date(b.ended_at).toLocaleDateString() : 'Ongoing';
+                const duration = b.ended_at
+                    ? Math.round((new Date(b.ended_at) - new Date(b.started_at)) / 86400000) + ' days'
+                    : Math.round((Date.now() - new Date(b.started_at)) / 86400000) + ' days so far';
+                const color = escapeHtml(b.color || '');
+
+                html += `
+                <div class="brew-card">
+                    <div class="brew-card-header">
+                        <span class="brew-card-name">${name}</span>
+                        <span class="brew-card-status ${b.status}">${b.status}</span>
+                    </div>
+                    <div class="brew-card-details">
+                        ${color ? color + ' Tilt &bull; ' : ''}${started} — ${ended} &bull; ${duration}
+                    </div>
+                    <div class="brew-card-stats">
+                        ${b.og ? `<span class="brew-card-stat">OG: ${b.og.toFixed(3)}</span>` : ''}
+                        ${b.fg ? `<span class="brew-card-stat">FG: ${b.fg.toFixed(3)}</span>` : ''}
+                        ${b.abv ? `<span class="brew-card-stat">ABV: ${b.abv}%</span>` : ''}
+                    </div>
+                    <div class="brew-card-actions">
+                        <button class="btn btn-ghost btn-sm" onclick="viewBrew(${b.id})">View</button>
+                        <button class="btn btn-ghost btn-sm" onclick="window.location='/api/export.csv?brew_id=${b.id}'">Export CSV</button>
+                    </div>
+                </div>`;
+            });
+        }
+        html += '</div>';
+        content.className = 'content-inner';
+        content.innerHTML = html;
+        initialized = false; // force re-init when going back to dashboard
+    }
+
+    function viewBrew(brewId) {
+        document.getElementById('brew-picker').value = brewId;
+        switchBrew(brewId);
+    }
+
+    function backToDashboard() {
+        viewingBrewId = null;
+        document.getElementById('brew-picker').value = '';
+        document.getElementById('read-only-banner').style.display = 'none';
+        document.getElementById('btn-end-brew').style.display = '';
+        document.getElementById('btn-start-brew').style.display = '';
+        initialized = false;
+        if (!pollInterval) pollInterval = setInterval(fetchData, 5000);
         fetchData();
     }
 
@@ -601,7 +873,8 @@
             </div>
             <div class="toolbar">
                 <button class="btn btn-ghost" onclick="openSettings()">Brew Settings</button>
-                <button class="btn btn-ghost" onclick="window.location='/api/export.csv'">Export CSV</button>
+                <button class="btn btn-ghost" onclick="window.location=viewingBrewId ? '/api/export.csv?brew_id='+viewingBrewId : '/api/export.csv'">Export CSV</button>
+                <button class="btn btn-ghost" onclick="showHistory()">Brew History</button>
             </div>
             <div class="chart-container"><canvas id="gravityChart" height="130"></canvas></div>
             <div class="chart-container"><canvas id="tempChart" height="130"></canvas></div>
@@ -700,7 +973,8 @@
 
     async function fetchData() {
         try {
-            const res = await fetch('/api/readings');
+            const url = viewingBrewId ? `/api/brews/${viewingBrewId}/readings` : '/api/readings';
+            const res = await fetch(url);
             const data = await res.json();
             if (!data.length) return;
 
@@ -711,13 +985,26 @@
             const og = data[0].gravity;
             const sg = latest.gravity;
             const abv = (og - sg) * 131.25;
-            const targetFg = brewConfig.target_fg || 1.010;
+            // If viewing a past brew, use its config from the brews list
+            let viewConfig = brewConfig;
+            if (viewingBrewId) {
+                const brew = allBrews.find(b => b.id === viewingBrewId);
+                if (brew) {
+                    viewConfig = {
+                        brew_name: brew.name,
+                        target_fg: brew.target_fg,
+                        temp_low: brew.temp_low,
+                        temp_high: brew.temp_high,
+                    };
+                }
+            }
+            const targetFg = viewConfig.target_fg || 1.010;
             const progress = Math.min(100, Math.max(0, ((og - sg) / (og - targetFg)) * 100));
 
             // Gauges
             drawGauge('sgGauge', sg, 1.000, 1.080, '#d4a048', 'rgba(212,160,72,0.12)');
 
-            const tempOutOfRange = latest.temp_f < brewConfig.temp_low || latest.temp_f > brewConfig.temp_high;
+            const tempOutOfRange = latest.temp_f < viewConfig.temp_low || latest.temp_f > viewConfig.temp_high;
             const tempColor = tempOutOfRange ? '#dc3c3c' : '#e07832';
             const tempColorDim = tempOutOfRange ? 'rgba(220,60,60,0.12)' : 'rgba(224,120,50,0.12)';
             drawGauge('tempGauge', latest.temp_f, 55, 85, tempColor, tempColorDim);
@@ -730,9 +1017,9 @@
                 tempCard.classList.add('temp-alert');
                 tempValueEl.className = 'gauge-value temp-danger';
                 tempWarning.style.display = 'block';
-                tempWarning.textContent = latest.temp_f < brewConfig.temp_low
-                    ? `Below ${brewConfig.temp_low}\u00b0F!`
-                    : `Above ${brewConfig.temp_high}\u00b0F!`;
+                tempWarning.textContent = latest.temp_f < viewConfig.temp_low
+                    ? `Below ${viewConfig.temp_low}\u00b0F!`
+                    : `Above ${viewConfig.temp_high}\u00b0F!`;
             } else {
                 tempCard.classList.remove('temp-alert');
                 tempValueEl.className = 'gauge-value temp';
@@ -772,8 +1059,8 @@
             }
 
             // Header
-            const displayName = brewConfig.brew_name
-                ? `${brewConfig.brew_name} \u2022 Tilt ${latest.color}`
+            const displayName = viewConfig.brew_name
+                ? `${viewConfig.brew_name} \u2022 Tilt ${latest.color}`
                 : `Tilt ${latest.color}`;
             document.getElementById('brew-name').textContent = displayName;
             document.getElementById('last-updated').textContent =
@@ -798,8 +1085,13 @@
     }
 
     // Init
-    loadConfig().then(() => fetchData());
-    setInterval(fetchData, 5000);
+    async function init() {
+        await loadConfig();
+        await loadBrews();
+        fetchData();
+        pollInterval = setInterval(fetchData, 5000);
+    }
+    init();
     </script>
 </body>
 </html>

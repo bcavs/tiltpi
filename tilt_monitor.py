@@ -2,12 +2,11 @@
 """Tilt Hydrometer Monitor - reads BLE iBeacon data from Tilt devices."""
 
 import asyncio
-import json
-import os
-import time
 from datetime import datetime
 from aioblescan import create_bt_socket, BLEScanner
 from aioblescan.plugins.ibeacon import IBeacon
+
+import db
 
 # Tilt UUID -> color mapping
 TILT_UUIDS = {
@@ -21,11 +20,6 @@ TILT_UUIDS = {
     "a495bb80-c5b1-4b44-b512-1370f02d74de": "Pink",
 }
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-os.makedirs(DATA_DIR, exist_ok=True)
-LOG_FILE = os.path.join(DATA_DIR, "tilt_log.json")
-readings = []
-
 
 def process_packet(data):
     """Process a BLE packet and extract Tilt data if present."""
@@ -38,28 +32,23 @@ def process_packet(data):
             color = TILT_UUIDS[uuid]
             temp_f = beacon.get("major")
             sg = beacon.get("minor") / 1000
+            timestamp = datetime.now().isoformat()
 
-            reading = {
-                "timestamp": datetime.now().isoformat(),
-                "color": color,
-                "temp_f": temp_f,
-                "temp_c": round((temp_f - 32) * 5 / 9, 1),
-                "gravity": sg,
-            }
+            brew_id = db.ensure_active_brew(color, timestamp)
+            db.insert_reading(brew_id, timestamp, color, temp_f,
+                              round((temp_f - 32) * 5 / 9, 1), sg)
 
-            readings.append(reading)
             print(
-                f"[{reading['timestamp']}] Tilt {color}: {temp_f}°F ({reading['temp_c']}°C) SG: {sg:.3f}"
+                f"[{timestamp}] Tilt {color}: {temp_f}°F ({round((temp_f - 32) * 5 / 9, 1)}°C) SG: {sg:.3f}"
             )
-
-            # Append to log file
-            with open(LOG_FILE, "w") as f:
-                json.dump(readings[-1000:], f, indent=2)
 
 
 async def main():
     print("Starting Tilt Monitor...")
     print("Scanning for Tilt Hydrometers (Ctrl+C to stop)\n")
+
+    db.init_db()
+    db.migrate_from_json()
 
     sock = create_bt_socket(0)
     fac = BLEScanner(process_packet)

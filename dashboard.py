@@ -3,34 +3,11 @@
 
 import csv
 import io
-import json
-import os
 from flask import Flask, jsonify, render_template, request, Response
 
+import db
+
 app = Flask(__name__)
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-LOG_FILE = os.path.join(DATA_DIR, "tilt_log.json")
-CONFIG_FILE = os.path.join(DATA_DIR, "brew_config.json")
-
-DEFAULT_CONFIG = {
-    "brew_name": "",
-    "target_fg": 1.010,
-    "temp_low": 60,
-    "temp_high": 75,
-}
-
-
-def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE) as f:
-            return json.load(f)
-    return DEFAULT_CONFIG.copy()
-
-
-def save_config(config):
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(CONFIG_FILE, "w") as f:
-        json.dump(config, f, indent=2)
 
 
 @app.route("/")
@@ -40,39 +17,56 @@ def index():
 
 @app.route("/api/readings")
 def readings():
-    if os.path.exists(LOG_FILE):
-        with open(LOG_FILE) as f:
-            return jsonify(json.load(f))
-    return jsonify([])
+    brew_id = request.args.get("brew_id", type=int)
+    if brew_id:
+        data = db.get_readings(brew_id)
+    else:
+        data = db.get_readings_for_active_brew()
+    return jsonify(data if data else [])
 
 
 @app.route("/api/config", methods=["GET"])
 def get_config():
-    return jsonify(load_config())
+    brew = db.get_active_brew()
+    if not brew:
+        return jsonify({"brew_name": "", "target_fg": 1.010, "temp_low": 60, "temp_high": 75})
+    return jsonify({
+        "brew_name": brew["name"],
+        "target_fg": brew["target_fg"],
+        "temp_low": brew["temp_low"],
+        "temp_high": brew["temp_high"],
+    })
 
 
 @app.route("/api/config", methods=["POST"])
 def update_config():
-    config = load_config()
+    brew = db.get_active_brew()
+    if not brew:
+        return jsonify({"error": "No active brew"}), 404
     data = request.get_json()
+    fields = {}
     if "brew_name" in data:
-        config["brew_name"] = str(data["brew_name"])
+        fields["name"] = str(data["brew_name"])
     if "target_fg" in data:
-        config["target_fg"] = float(data["target_fg"])
+        fields["target_fg"] = float(data["target_fg"])
     if "temp_low" in data:
-        config["temp_low"] = float(data["temp_low"])
+        fields["temp_low"] = float(data["temp_low"])
     if "temp_high" in data:
-        config["temp_high"] = float(data["temp_high"])
-    save_config(config)
-    return jsonify(config)
+        fields["temp_high"] = float(data["temp_high"])
+    db.update_brew(brew["id"], **fields)
+    return get_config()
 
 
 @app.route("/api/export.csv")
 def export_csv():
-    if not os.path.exists(LOG_FILE):
-        return Response("No data", status=404)
-    with open(LOG_FILE) as f:
-        data = json.load(f)
+    brew_id = request.args.get("brew_id", type=int)
+    if brew_id:
+        brew = db.get_brew(brew_id)
+        data = db.get_readings(brew_id)
+    else:
+        brew = db.get_active_brew()
+        data = db.get_readings_for_active_brew()
+
     if not data:
         return Response("No data", status=404)
 
@@ -81,8 +75,7 @@ def export_csv():
     writer.writeheader()
     writer.writerows(data)
 
-    config = load_config()
-    filename = config.get("brew_name", "").replace(" ", "_") or "tilt_log"
+    filename = (brew.get("name", "").replace(" ", "_") if brew else "") or "tilt_log"
     return Response(
         output.getvalue(),
         mimetype="text/csv",
@@ -90,5 +83,39 @@ def export_csv():
     )
 
 
+@app.route("/api/brews")
+def list_brews():
+    return jsonify(db.list_brews())
+
+
+@app.route("/api/brews/<int:brew_id>/readings")
+def brew_readings(brew_id):
+    return jsonify(db.get_readings(brew_id))
+
+
+@app.route("/api/brews/start", methods=["POST"])
+def start_brew():
+    active = db.get_active_brew()
+    if active:
+        db.end_brew(active["id"])
+    data = request.get_json() or {}
+    brew_id = db.create_brew(
+        color=data.get("color", ""),
+        name=data.get("name", ""),
+        target_fg=data.get("target_fg", 1.010),
+        temp_low=data.get("temp_low", 60),
+        temp_high=data.get("temp_high", 75),
+    )
+    return jsonify(db.get_brew(brew_id)), 201
+
+
+@app.route("/api/brews/<int:brew_id>/end", methods=["POST"])
+def end_brew(brew_id):
+    db.end_brew(brew_id)
+    return jsonify(db.get_brew(brew_id))
+
+
 if __name__ == "__main__":
+    db.init_db()
+    db.migrate_from_json()
     app.run(host="0.0.0.0", port=8080)
