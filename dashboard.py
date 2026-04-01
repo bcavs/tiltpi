@@ -116,6 +116,15 @@ def end_brew(brew_id):
     return jsonify(db.get_brew(brew_id))
 
 
+@app.route("/api/brews/<int:brew_id>", methods=["DELETE"])
+def delete_brew(brew_id):
+    brew = db.get_brew(brew_id)
+    if not brew:
+        return jsonify({"error": "Brew not found"}), 404
+    db.delete_brew(brew_id)
+    return jsonify({"ok": True})
+
+
 @app.route("/api/backup.db")
 def backup_db():
     return send_file(

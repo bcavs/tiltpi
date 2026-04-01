@@ -645,6 +645,7 @@
                     <div class="brew-card-actions">
                         <button class="btn btn-ghost btn-sm" onclick="viewBrew(${b.id})">View</button>
                         <button class="btn btn-ghost btn-sm" onclick="window.location='/api/export.csv?brew_id=${b.id}'">Export CSV</button>
+                        <button class="btn btn-ghost btn-sm" onclick="deleteBrew(${b.id}, '${name.replace(/'/g, "\\'")}')" style="color:#dc3c3c">Delete</button>
                     </div>
                 </div>`;
             });
@@ -653,6 +654,15 @@
         content.className = 'content-inner';
         content.innerHTML = html;
         initialized = false; // force re-init when going back to dashboard
+    }
+
+    async function deleteBrew(brewId, name) {
+        if (!confirm(`Delete "${name}"? This will permanently remove all its readings.`)) return;
+        try {
+            await fetch(`/api/brews/${brewId}`, { method: 'DELETE' });
+            await loadBrews();
+            showHistory();
+        } catch(e) { console.error('Failed to delete brew:', e); }
     }
 
     function viewBrew(brewId) {

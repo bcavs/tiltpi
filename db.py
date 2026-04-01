@@ -121,6 +121,17 @@ def end_brew(brew_id):
         conn.close()
 
 
+def delete_brew(brew_id):
+    """Delete a brew and all its readings."""
+    conn = get_connection()
+    try:
+        conn.execute("DELETE FROM readings WHERE brew_id = ?", (brew_id,))
+        conn.execute("DELETE FROM brews WHERE id = ?", (brew_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def update_brew(brew_id, **fields):
     """Update allowed fields on a brew."""
     allowed = {"name", "target_fg", "temp_low", "temp_high"}
