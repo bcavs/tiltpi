@@ -566,15 +566,30 @@
     }
 
     function openSettings() {
-        // Block settings for past (non-active) brews
-        if (viewingBrewId !== null) {
+        const isReadOnly = viewingBrewId !== null && (() => {
             const brew = allBrews.find(b => b.id === viewingBrewId);
-            if (brew && brew.status !== 'active') return;
+            return brew && brew.status !== 'active';
+        })();
+
+        // For past brews, populate from the brew data; for active, use brewConfig
+        let cfg;
+        if (isReadOnly) {
+            const brew = allBrews.find(b => b.id === viewingBrewId);
+            cfg = { brew_name: brew.name, target_fg: brew.target_fg, temp_low: brew.temp_low, temp_high: brew.temp_high };
+        } else {
+            cfg = brewConfig;
         }
-        document.getElementById('cfg-name').value = brewConfig.brew_name || '';
-        document.getElementById('cfg-fg').value = brewConfig.target_fg || 1.010;
-        document.getElementById('cfg-temp-low').value = brewConfig.temp_low || 60;
-        document.getElementById('cfg-temp-high').value = brewConfig.temp_high || 75;
+
+        document.getElementById('cfg-name').value = cfg.brew_name || '';
+        document.getElementById('cfg-fg').value = cfg.target_fg || 1.010;
+        document.getElementById('cfg-temp-low').value = cfg.temp_low || 60;
+        document.getElementById('cfg-temp-high').value = cfg.temp_high || 75;
+
+        // Lock non-name fields for past brews
+        document.getElementById('cfg-fg').disabled = isReadOnly;
+        document.getElementById('cfg-temp-low').disabled = isReadOnly;
+        document.getElementById('cfg-temp-high').disabled = isReadOnly;
+
         document.getElementById('settings-modal').classList.add('open');
     }
 
@@ -583,17 +598,36 @@
     }
 
     async function saveSettings() {
-        brewConfig.brew_name = document.getElementById('cfg-name').value;
-        brewConfig.target_fg = parseFloat(document.getElementById('cfg-fg').value) || 1.010;
-        brewConfig.temp_low = parseFloat(document.getElementById('cfg-temp-low').value) || 60;
-        brewConfig.temp_high = parseFloat(document.getElementById('cfg-temp-high').value) || 75;
-        try {
-            await fetch('/api/config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(brewConfig),
-            });
-        } catch(e) {}
+        const isReadOnly = viewingBrewId !== null && (() => {
+            const brew = allBrews.find(b => b.id === viewingBrewId);
+            return brew && brew.status !== 'active';
+        })();
+
+        if (isReadOnly) {
+            // Past brew — only update the name
+            const name = document.getElementById('cfg-name').value;
+            try {
+                await fetch(`/api/brews/${viewingBrewId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name }),
+                });
+                await loadBrews();
+            } catch(e) {}
+        } else {
+            // Active brew — update all fields
+            brewConfig.brew_name = document.getElementById('cfg-name').value;
+            brewConfig.target_fg = parseFloat(document.getElementById('cfg-fg').value) || 1.010;
+            brewConfig.temp_low = parseFloat(document.getElementById('cfg-temp-low').value) || 60;
+            brewConfig.temp_high = parseFloat(document.getElementById('cfg-temp-high').value) || 75;
+            try {
+                await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(brewConfig),
+                });
+            } catch(e) {}
+        }
         closeSettings();
         fetchData();
     }

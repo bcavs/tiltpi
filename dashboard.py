@@ -110,6 +110,19 @@ def start_brew():
     return jsonify(db.get_brew(brew_id)), 201
 
 
+@app.route("/api/brews/<int:brew_id>", methods=["PATCH"])
+def update_brew(brew_id):
+    brew = db.get_brew(brew_id)
+    if not brew:
+        return jsonify({"error": "Brew not found"}), 404
+    data = request.get_json() or {}
+    fields = {}
+    if "name" in data:
+        fields["name"] = str(data["name"])
+    db.update_brew(brew_id, **fields)
+    return jsonify(db.get_brew(brew_id))
+
+
 @app.route("/api/brews/<int:brew_id>/end", methods=["POST"])
 def end_brew(brew_id):
     db.end_brew(brew_id)
