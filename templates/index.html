@@ -875,6 +875,7 @@
                 <button class="btn btn-ghost" onclick="openSettings()">Brew Settings</button>
                 <button class="btn btn-ghost" onclick="window.location=viewingBrewId ? '/api/export.csv?brew_id='+viewingBrewId : '/api/export.csv'">Export CSV</button>
                 <button class="btn btn-ghost" onclick="showHistory()">Brew History</button>
+                <button class="btn btn-ghost" onclick="window.location='/api/backup.db'">Download Backup</button>
             </div>
             <div class="chart-container"><canvas id="gravityChart" height="130"></canvas></div>
             <div class="chart-container"><canvas id="tempChart" height="130"></canvas></div>

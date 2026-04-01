@@ -3,7 +3,8 @@
 
 import csv
 import io
-from flask import Flask, jsonify, render_template, request, Response
+from datetime import date
+from flask import Flask, jsonify, render_template, request, Response, send_file
 
 import db
 
@@ -113,6 +114,16 @@ def start_brew():
 def end_brew(brew_id):
     db.end_brew(brew_id)
     return jsonify(db.get_brew(brew_id))
+
+
+@app.route("/api/backup.db")
+def backup_db():
+    return send_file(
+        db.DB_PATH,
+        mimetype="application/x-sqlite3",
+        as_attachment=True,
+        download_name=f"tiltpi-backup-{date.today()}.db",
+    )
 
 
 if __name__ == "__main__":
