@@ -976,9 +976,14 @@
             const url = viewingBrewId ? `/api/brews/${viewingBrewId}/readings` : '/api/readings';
             const res = await fetch(url);
             const data = await res.json();
-            if (!data.length) return;
 
             const content = document.getElementById('main-content');
+            if (!data.length) {
+                content.className = 'no-data';
+                content.innerHTML = '<div class="icon">&#127866;</div>No readings yet. Make sure the Tilt monitor is running.';
+                initialized = false;
+                return;
+            }
             if (!initialized) initDashboard(content);
 
             const latest = data[data.length - 1];
