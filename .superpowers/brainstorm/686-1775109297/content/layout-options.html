@@ -1,0 +1,157 @@
+<h2>Dashboard Navigation Layout</h2>
+<p class="subtitle">How should brew controls, settings, history, and actions be organized?</p>
+
+<div class="cards">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 16px;">
+      <div style="font-family: system-ui; font-size: 11px; color: #aaa; line-height: 1.6;">
+        <!-- Tab bar mockup -->
+        <div style="display: flex; gap: 0; border-bottom: 2px solid #c8913a; margin-bottom: 12px;">
+          <div style="padding: 8px 16px; background: rgba(200,145,58,0.15); border-radius: 8px 8px 0 0; color: #c8913a; font-weight: 600;">Dashboard</div>
+          <div style="padding: 8px 16px; color: #666;">History</div>
+          <div style="padding: 8px 16px; color: #666;">Settings</div>
+        </div>
+        <!-- Header -->
+        <div style="text-align: center; padding: 8px 0; border-bottom: 1px solid #333; margin-bottom: 8px;">
+          <div style="color: #c8913a; font-size: 14px; font-weight: 600;">TiltPi</div>
+          <div style="color: #888; font-size: 10px;">Dad's IPA &bull; Tilt Red</div>
+        </div>
+        <!-- Cards row -->
+        <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+          <div style="flex: 1; background: rgba(255,255,255,0.05); border-radius: 6px; padding: 6px; text-align: center;">
+            <div style="font-size: 8px; color: #666;">GRAVITY</div>
+            <div style="color: #c8913a; font-size: 13px; font-weight: 600;">1.042</div>
+          </div>
+          <div style="flex: 1; background: rgba(255,255,255,0.05); border-radius: 6px; padding: 6px; text-align: center;">
+            <div style="font-size: 8px; color: #666;">TEMP</div>
+            <div style="color: #b87333; font-size: 13px; font-weight: 600;">68&deg;F</div>
+          </div>
+          <div style="flex: 1; background: rgba(255,255,255,0.05); border-radius: 6px; padding: 6px; text-align: center;">
+            <div style="font-size: 8px; color: #666;">ABV</div>
+            <div style="color: #c8913a; font-size: 13px; font-weight: 600;">2.4%</div>
+          </div>
+        </div>
+        <!-- Charts placeholder -->
+        <div style="background: rgba(255,255,255,0.03); border-radius: 6px; height: 40px; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; color: #444;">chart</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Top Tab Bar</h3>
+      <p>Dashboard / History / Settings as tabs at the top. Brew picker and actions move into the Settings tab. Clean separation — each view is its own page.</p>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 16px;">
+      <div style="font-family: system-ui; font-size: 11px; color: #aaa; line-height: 1.6;">
+        <!-- Header with actions -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #333; margin-bottom: 8px;">
+          <div>
+            <div style="color: #c8913a; font-size: 14px; font-weight: 600;">TiltPi</div>
+            <div style="color: #888; font-size: 10px;">Dad's IPA &bull; Tilt Red</div>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <div style="padding: 4px 8px; border: 1px solid #444; border-radius: 4px; font-size: 9px; color: #888;">&#9776;</div>
+          </div>
+        </div>
+        <!-- Cards row -->
+        <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+          <div style="flex: 1; background: rgba(255,255,255,0.05); border-radius: 6px; padding: 6px; text-align: center;">
+            <div style="font-size: 8px; color: #666;">GRAVITY</div>
+            <div style="color: #c8913a; font-size: 13px; font-weight: 600;">1.042</div>
+          </div>
+          <div style="flex: 1; background: rgba(255,255,255,0.05); border-radius: 6px; padding: 6px; text-align: center;">
+            <div style="font-size: 8px; color: #666;">TEMP</div>
+            <div style="color: #b87333; font-size: 13px; font-weight: 600;">68&deg;F</div>
+          </div>
+          <div style="flex: 1; background: rgba(255,255,255,0.05); border-radius: 6px; padding: 6px; text-align: center;">
+            <div style="font-size: 8px; color: #666;">ABV</div>
+            <div style="color: #c8913a; font-size: 13px; font-weight: 600;">2.4%</div>
+          </div>
+        </div>
+        <!-- Chart -->
+        <div style="background: rgba(255,255,255,0.03); border-radius: 6px; height: 40px; display: flex; align-items: center; justify-content: center; color: #444;">chart</div>
+        <!-- Slide-out hint -->
+        <div style="position: relative; margin-top: 8px;">
+          <div style="position: absolute; right: -8px; top: -60px; width: 55%; background: rgba(30,22,14,0.95); border: 1px solid rgba(200,145,58,0.2); border-radius: 8px; padding: 8px; font-size: 9px;">
+            <div style="color: #c8913a; font-weight: 600; margin-bottom: 4px;">Menu</div>
+            <div style="color: #888; padding: 3px 0; border-bottom: 1px solid #333;">Brew Settings</div>
+            <div style="color: #888; padding: 3px 0; border-bottom: 1px solid #333;">Brew History</div>
+            <div style="color: #888; padding: 3px 0; border-bottom: 1px solid #333;">Start New Brew</div>
+            <div style="color: #888; padding: 3px 0; border-bottom: 1px solid #333;">Export CSV</div>
+            <div style="color: #888; padding: 3px 0;">Download Backup</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Hamburger Menu</h3>
+      <p>All actions behind a single menu button in the header. Dashboard stays uncluttered. One tap to find everything — settings, history, export, backup, brew controls.</p>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 16px;">
+      <div style="font-family: system-ui; font-size: 11px; color: #aaa; line-height: 1.6;">
+        <!-- Header -->
+        <div style="text-align: center; padding: 6px 0; margin-bottom: 4px;">
+          <div style="color: #c8913a; font-size: 14px; font-weight: 600;">TiltPi</div>
+        </div>
+        <!-- Brew bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; background: rgba(200,145,58,0.06); border: 1px solid rgba(200,145,58,0.12); border-radius: 8px; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="width: 6px; height: 6px; border-radius: 50%; background: #5a9e6f;"></div>
+            <div style="color: #d9cbb8; font-size: 11px;">Dad's IPA</div>
+            <div style="color: #666; font-size: 9px;">&bull; Tilt Red</div>
+          </div>
+          <div style="display: flex; gap: 4px;">
+            <div style="padding: 3px 6px; border: 1px solid #444; border-radius: 4px; font-size: 8px; color: #888;">&#9881;</div>
+            <div style="padding: 3px 6px; border: 1px solid #444; border-radius: 4px; font-size: 8px; color: #888;">&#8986;</div>
+            <div style="padding: 3px 6px; border: 1px solid #444; border-radius: 4px; font-size: 8px; color: #888;">&hellip;</div>
+          </div>
+        </div>
+        <!-- Cards row -->
+        <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+          <div style="flex: 1; background: rgba(255,255,255,0.05); border-radius: 6px; padding: 6px; text-align: center;">
+            <div style="font-size: 8px; color: #666;">GRAVITY</div>
+            <div style="color: #c8913a; font-size: 13px; font-weight: 600;">1.042</div>
+          </div>
+          <div style="flex: 1; background: rgba(255,255,255,0.05); border-radius: 6px; padding: 6px; text-align: center;">
+            <div style="font-size: 8px; color: #666;">TEMP</div>
+            <div style="color: #b87333; font-size: 13px; font-weight: 600;">68&deg;F</div>
+          </div>
+          <div style="flex: 1; background: rgba(255,255,255,0.05); border-radius: 6px; padding: 6px; text-align: center;">
+            <div style="font-size: 8px; color: #666;">ABV</div>
+            <div style="color: #c8913a; font-size: 13px; font-weight: 600;">2.4%</div>
+          </div>
+        </div>
+        <!-- Chart -->
+        <div style="background: rgba(255,255,255,0.03); border-radius: 6px; height: 40px; display: flex; align-items: center; justify-content: center; color: #444;">chart</div>
+        <!-- Bottom bar -->
+        <div style="display: flex; justify-content: space-around; padding: 8px 0; margin-top: 8px; border-top: 1px solid #333;">
+          <div style="text-align: center;">
+            <div style="font-size: 14px;">&#127866;</div>
+            <div style="font-size: 8px; color: #c8913a;">Dashboard</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 14px;">&#128218;</div>
+            <div style="font-size: 8px; color: #666;">History</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 14px;">&#128229;</div>
+            <div style="font-size: 8px; color: #666;">Export</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. Brew Bar + Bottom Nav</h3>
+      <p>Active brew info + quick actions in a persistent bar below the header. Bottom navigation for switching between Dashboard, History, and Export. Mobile-friendly — feels like an app.</p>
+    </div>
+  </div>
+
+</div>
