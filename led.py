@@ -136,13 +136,39 @@ def _render_frame():
         _strip.show()
         return
 
-    # Idle: slow smooth amber breathing
+    # Idle: slow warm liquid light show — reds, ambers, oranges, yellows
     if status == "idle":
-        phase = time.time() * 0.4
-        brightness = 0.06 + 0.12 * (0.5 + 0.5 * math.sin(phase * math.pi))
-        val = int(180 * brightness)
+        t = time.time()
+        palette = [
+            (180, 40, 10),   # deep red
+            (200, 90, 10),   # burnt orange
+            (200, 140, 15),  # amber gold
+            (180, 160, 20),  # warm yellow
+            (200, 90, 10),   # burnt orange
+            (160, 30, 15),   # dark red
+            (180, 40, 10),   # loop back
+        ]
+        wave_speed = 0.08
+        wave_stretch = 1.5
+        breathe_speed = 0.4
+
         for i in range(LED_COUNT):
-            _strip[i] = (val, int(val * 0.55), 0)
+            pos = (i / LED_COUNT * wave_stretch + t * wave_speed) % 1.0
+            scaled = pos * (len(palette) - 1)
+            idx = int(scaled)
+            frac = scaled - idx
+            c1 = palette[idx]
+            c2 = palette[min(idx + 1, len(palette) - 1)]
+            r = c1[0] + (c2[0] - c1[0]) * frac
+            g = c1[1] + (c2[1] - c1[1]) * frac
+            b = c1[2] + (c2[2] - c1[2]) * frac
+
+            breathe = 0.5 + 0.2 * math.sin(t * breathe_speed + i * 0.4)
+            breathe += 0.1 * math.sin(t * breathe_speed * 1.3 - i * 0.3)
+            breathe = max(0.12, min(0.7, breathe))
+
+            _strip[i] = (int(r * breathe), int(g * breathe), int(b * breathe))
+
         _strip.show()
         return
 
