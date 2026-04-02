@@ -3,20 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tilt Monitor</title>
+    <title>TiltPi</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap');
+
+        :root {
+            --amber: #c8913a;
+            --amber-bright: #e5a84b;
+            --amber-dim: rgba(200, 145, 58, 0.12);
+            --amber-glow: rgba(200, 145, 58, 0.35);
+            --copper: #b87333;
+            --cream: #f0e6d3;
+            --cream-dim: rgba(240, 230, 211, 0.7);
+            --parchment: #d9cbb8;
+            --ink: #2c2318;
+            --ink-deep: #1a150e;
+            --ink-surface: #241e15;
+            --ink-card: rgba(28, 22, 14, 0.88);
+            --muted: #7a6b56;
+            --muted-dim: #564d3f;
+            --danger: #c44;
+            --success: #5a9e6f;
+            --info: #6a9ab8;
+            --font-display: 'Cormorant Garamond', Georgia, serif;
+            --font-body: 'Outfit', system-ui, sans-serif;
+            --font-mono: 'DM Mono', 'Menlo', monospace;
+            --radius: 12px;
+            --radius-lg: 20px;
+        }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: #1a1008;
-            color: #e8d5b5;
+            font-family: var(--font-body);
+            background: var(--ink-deep);
+            color: var(--cream-dim);
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
+            font-weight: 300;
+            letter-spacing: 0.01em;
+        }
+
+        /* Grain overlay */
+        body::after {
+            content: '';
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.025;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
         }
 
         /* ── Bubble canvas ── */
@@ -39,9 +77,11 @@
             position: absolute;
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 4rem; font-weight: 700;
-            color: #d4a048;
-            text-shadow: 0 0 40px rgba(212, 160, 72, 0.6), 0 0 80px rgba(212, 160, 72, 0.3);
+            font-family: var(--font-display);
+            font-size: 5rem; font-weight: 700;
+            font-style: italic;
+            color: var(--amber-bright);
+            text-shadow: 0 0 60px var(--amber-glow), 0 0 120px rgba(200, 145, 58, 0.15);
             opacity: 0;
             animation: cheersIn 3s ease forwards;
         }
@@ -68,100 +108,151 @@
 
         /* ── Header ── */
         .header {
-            padding: 28px 24px 20px;
+            padding: 36px 24px 24px;
             text-align: center;
-            border-bottom: 1px solid rgba(212, 160, 72, 0.15);
-            background: linear-gradient(180deg, rgba(30, 20, 8, 0.9) 0%, transparent 100%);
+            border-bottom: 1px solid var(--amber-dim);
+            background: linear-gradient(180deg, rgba(26, 21, 14, 0.95) 0%, transparent 100%);
         }
         .header h1 {
-            font-size: 1.6rem; font-weight: 700;
-            color: #d4a048;
-            letter-spacing: 0.02em;
+            font-family: var(--font-display);
+            font-size: 2.4rem; font-weight: 700;
+            color: var(--amber);
+            letter-spacing: 0.04em;
+            line-height: 1;
+        }
+        .header h1 span {
+            font-weight: 400;
+            font-style: italic;
+            color: var(--muted);
+            font-size: 0.5em;
+            display: block;
+            margin-top: 2px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            font-family: var(--font-body);
         }
         .header .sub {
-            color: #8a7a60; font-size: 0.82rem; margin-top: 6px;
+            color: var(--muted);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            margin-top: 10px;
+            letter-spacing: 0.02em;
         }
         .brew-name {
-            color: #c49a3c; font-size: 0.95rem; margin-top: 4px; font-weight: 500;
+            font-family: var(--font-display);
+            color: var(--parchment);
+            font-size: 1.15rem;
+            margin-top: 6px;
+            font-weight: 600;
             cursor: pointer;
             transition: color 0.2s;
+            font-style: italic;
         }
-        .brew-name:hover { color: #e8c060; }
+        .brew-name:hover { color: var(--amber-bright); }
 
         /* ── Settings modal ── */
         .modal-backdrop {
             display: none;
             position: fixed; top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
             z-index: 50;
-            backdrop-filter: blur(4px);
+            backdrop-filter: blur(6px);
         }
         .modal-backdrop.open { display: flex; align-items: center; justify-content: center; }
         .modal {
-            background: #1e160c;
-            border: 1px solid rgba(212, 160, 72, 0.2);
-            border-radius: 16px;
-            padding: 28px;
+            background: var(--ink-surface);
+            border: 1px solid rgba(200, 145, 58, 0.15);
+            border-radius: var(--radius-lg);
+            padding: 32px;
             width: 90%; max-width: 400px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
         }
         .modal h2 {
-            color: #d4a048; font-size: 1.1rem; margin-bottom: 20px;
+            font-family: var(--font-display);
+            color: var(--amber);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 24px;
         }
         .modal label {
-            display: block; color: #8a7a60; font-size: 0.78rem;
-            text-transform: uppercase; letter-spacing: 0.06em;
-            margin-bottom: 4px; margin-top: 14px;
+            display: block;
+            font-family: var(--font-mono);
+            color: var(--muted);
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 6px; margin-top: 18px;
         }
         .modal label:first-of-type { margin-top: 0; }
         .modal input {
-            width: 100%; padding: 10px 12px;
-            background: rgba(212, 160, 72, 0.06);
-            border: 1px solid rgba(212, 160, 72, 0.15);
+            width: 100%; padding: 11px 14px;
+            background: rgba(200, 145, 58, 0.05);
+            border: 1px solid rgba(200, 145, 58, 0.12);
             border-radius: 8px;
-            color: #e8d5b5; font-size: 0.9rem;
-            font-family: inherit;
+            color: var(--cream);
+            font-size: 0.9rem;
+            font-family: var(--font-body);
             outline: none;
-            transition: border-color 0.2s;
+            transition: border-color 0.25s, box-shadow 0.25s;
         }
-        .modal input:focus { border-color: rgba(212, 160, 72, 0.4); }
-        .modal input::placeholder { color: #5a4a30; }
+        .modal input:focus {
+            border-color: rgba(200, 145, 58, 0.35);
+            box-shadow: 0 0 0 3px rgba(200, 145, 58, 0.08);
+        }
+        .modal input:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .modal input::placeholder { color: var(--muted-dim); }
         .modal-actions {
-            display: flex; gap: 10px; margin-top: 22px;
+            display: flex; gap: 10px; margin-top: 26px;
             justify-content: flex-end;
         }
+
+        /* ── Buttons ── */
         .btn {
-            padding: 8px 20px; border-radius: 8px;
-            font-size: 0.85rem; font-weight: 500;
-            cursor: pointer; border: none;
-            font-family: inherit;
+            padding: 9px 22px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            font-family: var(--font-body);
+            letter-spacing: 0.02em;
             transition: all 0.2s;
         }
         .btn-primary {
-            background: #d4a048; color: #1a1008;
+            background: var(--amber);
+            color: var(--ink);
         }
-        .btn-primary:hover { background: #e0b060; }
+        .btn-primary:hover {
+            background: var(--amber-bright);
+            box-shadow: 0 0 20px rgba(200, 145, 58, 0.25);
+        }
         .btn-ghost {
-            background: transparent; color: #8a7a60;
-            border: 1px solid rgba(212, 160, 72, 0.15);
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid rgba(200, 145, 58, 0.12);
         }
-        .btn-ghost:hover { border-color: rgba(212, 160, 72, 0.3); color: #c49a3c; }
+        .btn-ghost:hover {
+            border-color: rgba(200, 145, 58, 0.3);
+            color: var(--amber);
+            background: rgba(200, 145, 58, 0.04);
+        }
+        .btn-sm { font-size: 0.72rem; padding: 6px 14px; }
 
         /* ── Cards grid ── */
         .cards {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 16px; padding: 24px;
-            max-width: 1000px;
+            gap: 14px; padding: 28px 24px;
+            max-width: 1020px;
             margin: 0 auto;
         }
         @media (max-width: 900px) {
             .cards {
                 grid-template-columns: repeat(3, 1fr);
-            }
-            .cards > :nth-child(4),
-            .cards > :nth-child(5) {
-                grid-column: span 1;
             }
         }
         @media (max-width: 550px) {
@@ -173,25 +264,39 @@
             }
         }
 
-        /* ── Gauge card ── */
-        .gauge-card {
-            background: rgba(30, 22, 10, 0.85);
-            border: 1px solid rgba(212, 160, 72, 0.12);
-            border-radius: 16px;
+        /* ── Card base ── */
+        .gauge-card, .info-card {
+            background: var(--ink-card);
+            border: 1px solid rgba(200, 145, 58, 0.08);
+            border-radius: var(--radius);
             padding: 20px 16px 16px;
             text-align: center;
-            backdrop-filter: blur(10px);
-            transition: border-color 0.3s;
+            backdrop-filter: blur(12px);
+            transition: border-color 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
         }
+        .gauge-card::before, .info-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(200, 145, 58, 0.15), transparent);
+        }
+
         .gauge-card.temp-alert {
-            border-color: rgba(220, 60, 60, 0.5);
-            box-shadow: 0 0 20px rgba(220, 60, 60, 0.15);
+            border-color: rgba(204, 68, 68, 0.4);
+            box-shadow: 0 0 30px rgba(204, 68, 68, 0.08);
         }
-        .gauge-card .label {
-            color: #8a7a60; font-size: 0.75rem;
-            text-transform: uppercase; letter-spacing: 0.08em;
-            margin-bottom: 12px;
+        .gauge-card .label, .info-card .label {
+            font-family: var(--font-mono);
+            color: var(--muted);
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 14px;
         }
+
+        /* ── Gauge ── */
         .gauge-wrap {
             position: relative;
             width: 100%; max-width: 160px;
@@ -206,17 +311,24 @@
             position: absolute;
             bottom: 0; left: 0; right: 0;
             text-align: center;
-            font-size: 1.5rem; font-weight: 700;
+            font-family: var(--font-mono);
+            font-size: 1.4rem; font-weight: 500;
         }
-        .gauge-value.gravity { color: #d4a048; }
-        .gauge-value.temp { color: #e07832; }
-        .gauge-value.temp-danger { color: #dc3c3c; }
+        .gauge-value.gravity { color: var(--amber-bright); }
+        .gauge-value.temp { color: var(--copper); }
+        .gauge-value.temp-danger { color: var(--danger); }
         .gauge-sub {
-            color: #8a7a60; font-size: 0.8rem; margin-top: 4px;
+            color: var(--muted);
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            margin-top: 6px;
         }
         .temp-warning {
-            color: #dc3c3c; font-size: 0.75rem;
-            margin-top: 4px; font-weight: 600;
+            color: var(--danger);
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            margin-top: 6px;
+            font-weight: 500;
             animation: pulse 1.5s ease infinite;
         }
         @keyframes pulse {
@@ -224,206 +336,269 @@
             50% { opacity: 0.5; }
         }
 
-        /* ── ABV / Status / ETA cards ── */
-        .info-card {
-            background: rgba(30, 22, 10, 0.85);
-            border: 1px solid rgba(212, 160, 72, 0.12);
-            border-radius: 16px;
-            padding: 20px 16px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-        }
-        .info-card .label {
-            color: #8a7a60; font-size: 0.75rem;
-            text-transform: uppercase; letter-spacing: 0.08em;
-        }
+        /* ── Info cards ── */
         .info-card .value {
-            font-size: 1.8rem; font-weight: 700; margin-top: 8px;
+            font-family: var(--font-mono);
+            font-size: 1.6rem;
+            font-weight: 500;
+            margin-top: 8px;
         }
-        .info-card .value.abv { color: #d4a048; }
-        .info-card .value.eta { color: #60a5d4; font-size: 1.4rem; }
-        .info-card .value.status { font-size: 1rem; }
-        .status-active { color: #48d470; }
-        .status-slowing { color: #d4a048; }
-        .status-complete { color: #e07832; }
-        .info-card .sub { color: #8a7a60; font-size: 0.8rem; margin-top: 4px; }
+        .info-card .value.abv { color: var(--amber-bright); }
+        .info-card .value.eta { color: var(--info); font-size: 1.2rem; }
+        .info-card .value.status {
+            font-family: var(--font-display);
+            font-size: 1.15rem;
+            font-weight: 600;
+            font-style: italic;
+        }
+        .status-active { color: var(--success); }
+        .status-slowing { color: var(--amber); }
+        .status-complete { color: var(--copper); }
+        .info-card .sub {
+            color: var(--muted);
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            margin-top: 6px;
+        }
 
-        /* ── Fermentation progress ── */
+        /* ── Progress ── */
         .progress-section {
-            padding: 0 24px 8px;
+            padding: 0 24px 10px;
             max-width: 700px;
             margin: 0 auto;
         }
         .progress-header {
             display: flex; justify-content: space-between;
-            font-size: 0.78rem; color: #8a7a60;
-            margin-bottom: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            color: var(--muted);
+            margin-bottom: 8px;
         }
         .progress-bar-bg {
-            height: 10px;
-            background: rgba(212, 160, 72, 0.1);
-            border-radius: 5px;
+            height: 6px;
+            background: rgba(200, 145, 58, 0.08);
+            border-radius: 3px;
             overflow: hidden;
-            border: 1px solid rgba(212, 160, 72, 0.1);
         }
         .progress-bar-fill {
             height: 100%;
-            border-radius: 5px;
-            background: linear-gradient(90deg, #d4a048, #e07832);
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--copper), var(--amber-bright));
             transition: width 1s ease;
-            box-shadow: 0 0 12px rgba(212, 160, 72, 0.4);
+            box-shadow: 0 0 16px var(--amber-glow);
         }
         .progress-label {
             text-align: center;
-            font-size: 0.82rem;
-            color: #c49a3c;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--amber);
             margin-top: 8px;
-            font-weight: 500;
+            font-weight: 400;
         }
 
         /* ── Toolbar ── */
         .toolbar {
-            display: flex; justify-content: center; gap: 10px;
-            padding: 8px 24px 16px;
+            display: flex; justify-content: center; gap: 8px;
+            padding: 10px 24px 20px;
+            flex-wrap: wrap;
         }
-        .toolbar .btn { font-size: 0.78rem; padding: 6px 16px; }
+        .toolbar .btn { font-size: 0.72rem; padding: 7px 16px; }
 
         /* ── Charts ── */
-        .chart-container { padding: 12px 24px 20px; }
+        .chart-container { padding: 10px 24px 16px; }
         .chart-container canvas {
-            background: rgba(30, 22, 10, 0.85);
-            border-radius: 12px;
-            border: 1px solid rgba(212, 160, 72, 0.1);
+            background: var(--ink-card);
+            border-radius: var(--radius);
+            border: 1px solid rgba(200, 145, 58, 0.06);
         }
 
-        /* ── No data state ── */
+        /* ── No data ── */
         .no-data {
-            text-align: center; padding: 100px 24px;
-            color: #5a4a30; font-size: 1.1rem;
+            text-align: center; padding: 120px 24px;
+            color: var(--muted-dim);
+            font-size: 1rem;
         }
-        .no-data .icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.5; }
+        .no-data .icon {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            opacity: 0.4;
+        }
 
         /* ── Brew controls ── */
         .brew-controls {
             display: none;
             justify-content: center;
             align-items: center;
-            gap: 10px;
-            margin-top: 8px;
+            gap: 8px;
+            margin-top: 12px;
             flex-wrap: wrap;
         }
         .brew-controls.visible { display: flex; }
         .brew-picker {
-            padding: 6px 12px;
-            background: rgba(212, 160, 72, 0.06);
-            border: 1px solid rgba(212, 160, 72, 0.15);
+            padding: 7px 14px;
+            background: rgba(200, 145, 58, 0.05);
+            border: 1px solid rgba(200, 145, 58, 0.12);
             border-radius: 8px;
-            color: #e8d5b5;
-            font-size: 0.82rem;
-            font-family: inherit;
+            color: var(--cream);
+            font-size: 0.78rem;
+            font-family: var(--font-body);
             outline: none;
             cursor: pointer;
+            transition: border-color 0.2s;
         }
-        .brew-picker option { background: #1e160c; color: #e8d5b5; }
-        .btn-sm { font-size: 0.75rem; padding: 5px 12px; }
+        .brew-picker:hover { border-color: rgba(200, 145, 58, 0.25); }
+        .brew-picker option { background: var(--ink-surface); color: var(--cream); }
+
         .read-only-banner {
             text-align: center;
-            padding: 8px;
-            background: rgba(96, 165, 212, 0.1);
-            border-bottom: 1px solid rgba(96, 165, 212, 0.2);
-            color: #60a5d4;
-            font-size: 0.82rem;
+            padding: 10px;
+            background: rgba(106, 154, 184, 0.06);
+            border-bottom: 1px solid rgba(106, 154, 184, 0.12);
+            color: var(--info);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.03em;
         }
 
         /* ── History view ── */
         .history-view {
             max-width: 800px;
             margin: 0 auto;
-            padding: 24px;
+            padding: 32px 24px;
         }
         .history-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--amber-dim);
         }
         .history-header h2 {
-            color: #d4a048;
-            font-size: 1.2rem;
+            font-family: var(--font-display);
+            color: var(--amber);
+            font-size: 1.8rem;
+            font-weight: 700;
         }
         .brew-card {
-            background: rgba(30, 22, 10, 0.85);
-            border: 1px solid rgba(212, 160, 72, 0.12);
-            border-radius: 16px;
-            padding: 20px;
+            background: var(--ink-card);
+            border: 1px solid rgba(200, 145, 58, 0.08);
+            border-radius: var(--radius);
+            padding: 22px 24px;
             margin-bottom: 12px;
-            backdrop-filter: blur(10px);
-            transition: border-color 0.3s;
+            backdrop-filter: blur(12px);
+            transition: border-color 0.3s, transform 0.2s;
+            position: relative;
+            overflow: hidden;
         }
-        .brew-card:hover { border-color: rgba(212, 160, 72, 0.3); }
+        .brew-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; bottom: 0;
+            width: 3px;
+            background: var(--amber);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .brew-card:hover {
+            border-color: rgba(200, 145, 58, 0.2);
+            transform: translateX(2px);
+        }
+        .brew-card:hover::before { opacity: 1; }
         .brew-card-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         .brew-card-name {
-            font-size: 1.05rem;
+            font-family: var(--font-display);
+            font-size: 1.2rem;
             font-weight: 600;
-            color: #d4a048;
+            color: var(--parchment);
+            font-style: italic;
         }
         .brew-card-status {
-            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
             padding: 3px 10px;
-            border-radius: 12px;
+            border-radius: 20px;
             font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
         }
         .brew-card-status.completed {
-            background: rgba(72, 212, 112, 0.1);
-            color: #48d470;
+            background: rgba(90, 158, 111, 0.1);
+            color: var(--success);
         }
         .brew-card-status.active {
-            background: rgba(212, 160, 72, 0.1);
-            color: #d4a048;
+            background: rgba(200, 145, 58, 0.1);
+            color: var(--amber);
         }
         .brew-card-details {
-            color: #8a7a60;
-            font-size: 0.82rem;
-            line-height: 1.6;
+            color: var(--muted);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            line-height: 1.8;
         }
         .brew-card-stats {
             display: flex;
-            gap: 16px;
-            margin-top: 8px;
+            gap: 20px;
+            margin-top: 10px;
             flex-wrap: wrap;
         }
         .brew-card-stat {
-            color: #c49a3c;
+            font-family: var(--font-mono);
+            color: var(--amber);
             font-weight: 500;
-            font-size: 0.85rem;
+            font-size: 0.78rem;
         }
         .brew-card-actions {
             display: flex;
             gap: 8px;
-            margin-top: 12px;
+            margin-top: 14px;
         }
 
         /* ── Responsive ── */
         @media (max-width: 550px) {
+            .header { padding: 24px 16px 20px; }
+            .header h1 { font-size: 1.8rem; }
             .cards { padding: 16px 12px; gap: 10px; }
-            .gauge-card, .info-card { padding: 14px 10px; }
+            .gauge-card, .info-card { padding: 14px 10px 12px; }
             .gauge-wrap { max-width: 120px; }
-            .gauge-value { font-size: 1.2rem; }
-            .info-card .value { font-size: 1.4rem; }
-            .info-card .value.eta { font-size: 1.1rem; }
-            .chart-container { padding: 8px 12px 16px; }
-            .cheers-text { font-size: 2.5rem; }
-            .modal { padding: 20px; }
+            .gauge-value { font-size: 1.15rem; }
+            .info-card .value { font-size: 1.3rem; }
+            .info-card .value.eta { font-size: 1rem; }
+            .info-card .value.status { font-size: 1rem; }
+            .chart-container { padding: 6px 12px 12px; }
+            .cheers-text { font-size: 3rem; }
+            .modal { padding: 24px; }
             .progress-section { padding: 0 12px 8px; }
-            .toolbar { padding: 8px 12px 16px; }
-            .history-view { padding: 16px 12px; }
-            .brew-card-stats { gap: 10px; }
+            .toolbar { padding: 8px 12px 16px; gap: 6px; }
+            .history-view { padding: 20px 12px; }
+            .history-header h2 { font-size: 1.4rem; }
+            .brew-card { padding: 16px; }
+            .brew-card-stats { gap: 12px; }
+            .brew-card-name { font-size: 1.05rem; }
         }
+
+        /* ── Fade-in animation ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .content-inner .cards > * {
+            animation: fadeUp 0.5s ease both;
+        }
+        .content-inner .cards > :nth-child(1) { animation-delay: 0.05s; }
+        .content-inner .cards > :nth-child(2) { animation-delay: 0.1s; }
+        .content-inner .cards > :nth-child(3) { animation-delay: 0.15s; }
+        .content-inner .cards > :nth-child(4) { animation-delay: 0.2s; }
+        .content-inner .cards > :nth-child(5) { animation-delay: 0.25s; }
+        .content-inner .progress-section { animation: fadeUp 0.5s ease 0.3s both; }
+        .content-inner .toolbar { animation: fadeUp 0.5s ease 0.35s both; }
+        .content-inner .chart-container:first-of-type { animation: fadeUp 0.5s ease 0.4s both; }
+        .content-inner .chart-container:last-of-type { animation: fadeUp 0.5s ease 0.45s both; }
     </style>
 </head>
 <body>
@@ -455,7 +630,7 @@
 
     <div class="content">
         <div class="header">
-            <h1>Tilt Hydrometer</h1>
+            <h1>TiltPi<span>Hydrometer Monitor</span></h1>
             <div class="brew-name" id="brew-name" onclick="openSettings()" title="Click to edit brew settings"></div>
             <div class="sub" id="last-updated">Waiting for data...</div>
             <div class="brew-controls" id="brew-controls">
@@ -494,7 +669,6 @@
             const res = await fetch('/api/brews');
             allBrews = await res.json();
             const picker = document.getElementById('brew-picker');
-            // Keep the first "Current Brew" option, remove the rest
             while (picker.options.length > 1) picker.remove(1);
             allBrews.forEach(b => {
                 const opt = document.createElement('option');
@@ -514,13 +688,11 @@
             const brew = allBrews.find(b => b.id === viewingBrewId);
             const isActive = brew && brew.status === 'active';
             if (isActive) {
-                // Viewing the active brew — not read-only
                 banner.style.display = 'none';
                 document.getElementById('btn-end-brew').style.display = '';
                 document.getElementById('btn-start-brew').style.display = '';
                 if (!pollInterval) pollInterval = setInterval(fetchData, 5000);
             } else {
-                // Viewing a past brew — read-only
                 banner.textContent = `Viewing: ${brew ? brew.name || 'Brew #' + brew.id : 'Past brew'} (read-only)`;
                 banner.style.display = 'block';
                 document.getElementById('btn-end-brew').style.display = 'none';
@@ -571,7 +743,6 @@
             return brew && brew.status !== 'active';
         })();
 
-        // For past brews, populate from the brew data; for active, use brewConfig
         let cfg;
         if (isReadOnly) {
             const brew = allBrews.find(b => b.id === viewingBrewId);
@@ -585,7 +756,6 @@
         document.getElementById('cfg-temp-low').value = cfg.temp_low || 60;
         document.getElementById('cfg-temp-high').value = cfg.temp_high || 75;
 
-        // Lock non-name fields for past brews
         document.getElementById('cfg-fg').disabled = isReadOnly;
         document.getElementById('cfg-temp-low').disabled = isReadOnly;
         document.getElementById('cfg-temp-high').disabled = isReadOnly;
@@ -604,7 +774,6 @@
         })();
 
         if (isReadOnly) {
-            // Past brew — only update the name
             const name = document.getElementById('cfg-name').value;
             try {
                 await fetch(`/api/brews/${viewingBrewId}`, {
@@ -615,7 +784,6 @@
                 await loadBrews();
             } catch(e) {}
         } else {
-            // Active brew — update all fields
             brewConfig.brew_name = document.getElementById('cfg-name').value;
             brewConfig.target_fg = parseFloat(document.getElementById('cfg-fg').value) || 1.010;
             brewConfig.temp_low = parseFloat(document.getElementById('cfg-temp-low').value) || 60;
@@ -640,7 +808,6 @@
 
     function showHistory() {
         const content = document.getElementById('main-content');
-        // Stop polling
         if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
 
         let html = `
@@ -651,11 +818,11 @@
                 </div>`;
 
         if (allBrews.length === 0) {
-            html += '<p style="color:#5a4a30;text-align:center">No brews yet.</p>';
+            html += '<p style="color:var(--muted-dim);text-align:center;padding:40px 0">No brews yet.</p>';
         } else {
             allBrews.forEach(b => {
                 const name = escapeHtml(b.name || `Brew #${b.id}`);
-                const started = b.started_at ? new Date(b.started_at).toLocaleDateString() : '—';
+                const started = b.started_at ? new Date(b.started_at).toLocaleDateString() : '\u2014';
                 const ended = b.ended_at ? new Date(b.ended_at).toLocaleDateString() : 'Ongoing';
                 const duration = b.ended_at
                     ? Math.round((new Date(b.ended_at) - new Date(b.started_at)) / 86400000) + ' days'
@@ -669,7 +836,7 @@
                         <span class="brew-card-status ${b.status}">${b.status}</span>
                     </div>
                     <div class="brew-card-details">
-                        ${color ? color + ' Tilt &bull; ' : ''}${started} — ${ended} &bull; ${duration}
+                        ${color ? color + ' Tilt &bull; ' : ''}${started} \u2014 ${ended} &bull; ${duration}
                     </div>
                     <div class="brew-card-stats">
                         ${b.og ? `<span class="brew-card-stat">OG: ${b.og.toFixed(3)}</span>` : ''}
@@ -679,7 +846,7 @@
                     <div class="brew-card-actions">
                         <button class="btn btn-ghost btn-sm" onclick="viewBrew(${b.id})">View</button>
                         <button class="btn btn-ghost btn-sm" onclick="window.location='/api/export.csv?brew_id=${b.id}'">Export CSV</button>
-                        <button class="btn btn-ghost btn-sm" onclick="deleteBrew(${b.id}, '${name.replace(/'/g, "\\'")}')" style="color:#dc3c3c">Delete</button>
+                        <button class="btn btn-ghost btn-sm" onclick="deleteBrew(${b.id}, '${name.replace(/'/g, "\\'")}')" style="color:var(--danger)">Delete</button>
                     </div>
                 </div>`;
             });
@@ -687,7 +854,7 @@
         html += '</div>';
         content.className = 'content-inner';
         content.innerHTML = html;
-        initialized = false; // force re-init when going back to dashboard
+        initialized = false;
     }
 
     async function deleteBrew(brewId, name) {
@@ -726,8 +893,7 @@
         const overlay = document.getElementById('cheers-overlay');
         overlay.style.display = 'block';
 
-        // Spawn confetti
-        const colors = ['#d4a048', '#e07832', '#48d470', '#60a5d4', '#dc3c3c', '#c49a3c', '#e8c060'];
+        const colors = ['#c8913a', '#b87333', '#5a9e6f', '#6a9ab8', '#c44', '#e5a84b', '#d9cbb8'];
         for (let i = 0; i < 80; i++) {
             const piece = document.createElement('div');
             piece.className = 'confetti-piece';
@@ -741,7 +907,6 @@
             overlay.appendChild(piece);
         }
 
-        // Speed up bubbles temporarily
         bubbles.forEach(b => { b.speed *= 3; b.opacity = Math.min(0.3, b.opacity * 3); });
         setTimeout(() => {
             bubbles.forEach(b => { b.speed /= 3; b.opacity /= 3; });
@@ -774,7 +939,7 @@
             this.wobbleAmp = 0.3 + Math.random() * 0.8;
             this.wobbleFreq = 0.01 + Math.random() * 0.02;
             this.phase = Math.random() * Math.PI * 2;
-            this.opacity = 0.04 + Math.random() * 0.1;
+            this.opacity = 0.03 + Math.random() * 0.08;
         }
         update() {
             this.y -= this.speed;
@@ -785,16 +950,16 @@
         draw(ctx) {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(212, 160, 72, ${this.opacity})`;
+            ctx.fillStyle = `rgba(200, 145, 58, ${this.opacity})`;
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(this.x - this.r * 0.3, this.y - this.r * 0.3, this.r * 0.3, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255, 220, 140, ${this.opacity * 0.6})`;
+            ctx.arc(this.x - this.r * 0.3, this.y - this.r * 0.3, this.r * 0.25, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(240, 230, 211, ${this.opacity * 0.5})`;
             ctx.fill();
         }
     }
 
-    for (let i = 0; i < 60; i++) bubbles.push(new Bubble());
+    for (let i = 0; i < 50; i++) bubbles.push(new Bubble());
 
     function animateBubbles() {
         bCtx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
@@ -827,25 +992,28 @@
         const pct = Math.min(1, Math.max(0, (value - min) / (max - min)));
         const valueAngle = startAngle + pct * Math.PI;
 
+        // Track background
         ctx.beginPath();
         ctx.arc(cx, cy, radius, startAngle, endAngle);
-        ctx.lineWidth = 10;
+        ctx.lineWidth = 8;
         ctx.strokeStyle = colorDim;
         ctx.lineCap = 'round';
         ctx.stroke();
 
+        // Value arc
         ctx.beginPath();
         ctx.arc(cx, cy, radius, startAngle, valueAngle);
-        ctx.lineWidth = 10;
+        ctx.lineWidth = 8;
         ctx.strokeStyle = color;
         ctx.lineCap = 'round';
         ctx.stroke();
 
+        // Glow tip
         ctx.shadowColor = color;
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 20;
         ctx.beginPath();
         ctx.arc(cx, cy, radius, Math.max(startAngle, valueAngle - 0.1), valueAngle);
-        ctx.lineWidth = 10;
+        ctx.lineWidth = 8;
         ctx.strokeStyle = color;
         ctx.lineCap = 'round';
         ctx.stroke();
@@ -858,13 +1026,13 @@
     let gravityChart, tempChart, initialized = false;
 
     const chartColors = {
-        gravity: '#d4a048',
-        gravityBg: 'rgba(212, 160, 72, 0.1)',
-        temp: '#e07832',
-        tempBg: 'rgba(224, 120, 50, 0.1)',
-        grid: 'rgba(212, 160, 72, 0.08)',
-        tick: '#5a4a30',
-        label: '#8a7a60',
+        gravity: '#c8913a',
+        gravityBg: 'rgba(200, 145, 58, 0.08)',
+        temp: '#b87333',
+        tempBg: 'rgba(184, 115, 51, 0.08)',
+        grid: 'rgba(200, 145, 58, 0.06)',
+        tick: '#564d3f',
+        label: '#7a6b56',
     };
 
     function initDashboard(container) {
@@ -933,17 +1101,17 @@
                 title: {
                     display: true, text: label,
                     color: chartColors.label,
-                    font: { size: 13, family: 'Inter', weight: 500 },
-                    padding: { top: 12, bottom: 8 }
+                    font: { size: 12, family: 'Outfit', weight: 400 },
+                    padding: { top: 14, bottom: 8 }
                 }
             },
             scales: {
                 x: {
-                    ticks: { color: chartColors.tick, maxTicksLimit: 8, font: { size: 10 } },
+                    ticks: { color: chartColors.tick, maxTicksLimit: 8, font: { size: 10, family: 'DM Mono' } },
                     grid: { color: chartColors.grid }
                 },
                 y: {
-                    ticks: { color: chartColors.tick, font: { size: 10 } },
+                    ticks: { color: chartColors.tick, font: { size: 10, family: 'DM Mono' } },
                     grid: { color: chartColors.grid }
                 }
             }
@@ -1035,7 +1203,6 @@
             const og = data[0].gravity;
             const sg = latest.gravity;
             const abv = (og - sg) * 131.25;
-            // If viewing a past brew, use its config from the brews list
             let viewConfig = brewConfig;
             if (viewingBrewId) {
                 const brew = allBrews.find(b => b.id === viewingBrewId);
@@ -1052,14 +1219,13 @@
             const progress = Math.min(100, Math.max(0, ((og - sg) / (og - targetFg)) * 100));
 
             // Gauges
-            drawGauge('sgGauge', sg, 1.000, 1.080, '#d4a048', 'rgba(212,160,72,0.12)');
+            drawGauge('sgGauge', sg, 1.000, 1.080, '#c8913a', 'rgba(200,145,58,0.1)');
 
             const tempOutOfRange = latest.temp_f < viewConfig.temp_low || latest.temp_f > viewConfig.temp_high;
-            const tempColor = tempOutOfRange ? '#dc3c3c' : '#e07832';
-            const tempColorDim = tempOutOfRange ? 'rgba(220,60,60,0.12)' : 'rgba(224,120,50,0.12)';
+            const tempColor = tempOutOfRange ? '#c44' : '#b87333';
+            const tempColorDim = tempOutOfRange ? 'rgba(204,68,68,0.1)' : 'rgba(184,115,51,0.1)';
             drawGauge('tempGauge', latest.temp_f, 55, 85, tempColor, tempColorDim);
 
-            // Temp alert styling
             const tempCard = document.getElementById('temp-card');
             const tempValueEl = document.getElementById('temp');
             const tempWarning = document.getElementById('temp-warning');
@@ -1081,34 +1247,28 @@
             document.getElementById('temp').textContent = `${latest.temp_f}\u00b0F`;
             document.getElementById('temp-sub').textContent = `${latest.temp_c}\u00b0C`;
 
-            // ABV
             document.getElementById('abv').textContent = `${abv.toFixed(1)}%`;
             document.getElementById('abv-sub').textContent = `from ${og.toFixed(3)}`;
 
-            // Fermentation status
             const status = getFermentationStatus(data);
             const statusEl = document.getElementById('ferm-status');
             statusEl.textContent = status.label;
             statusEl.className = `value status ${status.cls}`;
             document.getElementById('ferm-sub').textContent = status.detail;
 
-            // ETA
             const eta = estimateTimeLeft(data, targetFg);
             document.getElementById('eta').textContent = eta.text;
             document.getElementById('eta-sub').textContent = eta.detail;
 
-            // Progress bar
             document.getElementById('og-label').textContent = `OG: ${og.toFixed(3)}`;
             document.getElementById('fg-label').textContent = `Target FG: ${targetFg.toFixed(3)}`;
             document.getElementById('progress-fill').style.width = `${progress}%`;
             document.getElementById('progress-label').textContent = `${progress.toFixed(0)}% attenuation`;
 
-            // Cheers!
             if (status.label === 'Complete' && sg <= targetFg + 0.002) {
                 showCheers();
             }
 
-            // Header
             const displayName = viewConfig.brew_name
                 ? `${viewConfig.brew_name} \u2022 Tilt ${latest.color}`
                 : `Tilt ${latest.color}`;
@@ -1116,7 +1276,6 @@
             document.getElementById('last-updated').textContent =
                 `Last reading: ${new Date(latest.timestamp).toLocaleString()}`;
 
-            // Charts
             const labels = data.map(r => {
                 const d = new Date(r.timestamp);
                 return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
