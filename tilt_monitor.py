@@ -114,12 +114,11 @@ async def main():
     led.start()
 
     sock = create_bt_socket(0)
-    conn = BLEScanRequester()
+    loop = asyncio.get_running_loop()
+    transport, conn = await loop._create_connection_transport(
+        sock, BLEScanRequester, None, None
+    )
     conn.process = process_packet
-
-    loop = asyncio.get_event_loop()
-    transport, protocol = await loop.create_connection(lambda: conn, sock=sock)
-
     await conn.send_scan_request()
 
     try:
@@ -128,6 +127,7 @@ async def main():
     except KeyboardInterrupt:
         print("\nStopping...")
     finally:
+        await conn.stop_scan_request()
         transport.close()
 
 
