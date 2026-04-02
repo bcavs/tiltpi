@@ -2,25 +2,27 @@
 """Tilt Hydrometer Monitor - reads BLE iBeacon data from Tilt devices."""
 
 import asyncio
+import json
 from datetime import datetime
-from aioblescan import create_bt_socket, BLEScanner
-from aioblescan.plugins.ibeacon import IBeacon
+from aioblescan import create_bt_socket, BLEScanRequester, HCI_Event
+from aioblescan.plugins import Tilt
 
 import db
 import led
 
-# Tilt UUID -> color mapping
+# Tilt UUID -> color mapping (UUIDs without dashes, as returned by the Tilt plugin)
 TILT_UUIDS = {
-    "a495bb10-c5b1-4b44-b512-1370f02d74de": "Red",
-    "a495bb20-c5b1-4b44-b512-1370f02d74de": "Green",
-    "a495bb30-c5b1-4b44-b512-1370f02d74de": "Black",
-    "a495bb40-c5b1-4b44-b512-1370f02d74de": "Purple",
-    "a495bb50-c5b1-4b44-b512-1370f02d74de": "Orange",
-    "a495bb60-c5b1-4b44-b512-1370f02d74de": "Blue",
-    "a495bb70-c5b1-4b44-b512-1370f02d74de": "Yellow",
-    "a495bb80-c5b1-4b44-b512-1370f02d74de": "Pink",
+    "a495bb10c5b14b44b5121370f02d74de": "Red",
+    "a495bb20c5b14b44b5121370f02d74de": "Green",
+    "a495bb30c5b14b44b5121370f02d74de": "Black",
+    "a495bb40c5b14b44b5121370f02d74de": "Purple",
+    "a495bb50c5b14b44b5121370f02d74de": "Orange",
+    "a495bb60c5b14b44b5121370f02d74de": "Blue",
+    "a495bb70c5b14b44b5121370f02d74de": "Yellow",
+    "a495bb80c5b14b44b5121370f02d74de": "Pink",
 }
 
+_tilt_decoder = Tilt()
 _celebration_shown = False
 
 
@@ -78,15 +80,17 @@ def _compute_led_state(brew_id):
 def process_packet(data):
     """Process a BLE packet and extract Tilt data if present."""
     global _celebration_shown
-    ev = BLEScanner.decode(data)
-    beacon = IBeacon.decode(ev)
+    ev = HCI_Event()
+    ev.decode(data)
 
-    if beacon:
-        uuid = beacon.get("uuid", "").lower()
+    result = _tilt_decoder.decode(ev)
+    if result:
+        parsed = json.loads(result)
+        uuid = parsed["uuid"].lower()
         if uuid in TILT_UUIDS:
             color = TILT_UUIDS[uuid]
-            temp_f = beacon.get("major")
-            sg = beacon.get("minor") / 1000
+            temp_f = parsed["major"]
+            sg = parsed["minor"] / 1000
             timestamp = datetime.now().isoformat()
 
             brew_id = db.ensure_active_brew(color, timestamp)
@@ -97,7 +101,7 @@ def process_packet(data):
             _compute_led_state(brew_id)
 
             print(
-                f"[{timestamp}] Tilt {color}: {temp_f}°F ({round((temp_f - 32) * 5 / 9, 1)}°C) SG: {sg:.3f}"
+                f"[{timestamp}] Tilt {color}: {temp_f}\u00b0F ({round((temp_f - 32) * 5 / 9, 1)}\u00b0C) SG: {sg:.3f}"
             )
 
 
@@ -110,10 +114,13 @@ async def main():
     led.start()
 
     sock = create_bt_socket(0)
-    fac = BLEScanner(process_packet)
+    conn = BLEScanRequester()
+    conn.process = process_packet
 
     loop = asyncio.get_event_loop()
-    transport, protocol = await loop.create_connection(fac, sock=sock)
+    transport, protocol = await loop.create_connection(lambda: conn, sock=sock)
+
+    await conn.send_scan_request()
 
     try:
         while True:
