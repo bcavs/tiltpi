@@ -136,10 +136,10 @@ def _render_frame():
         _strip.show()
         return
 
-    # Idle: dim breathing amber
+    # Idle: slow smooth amber breathing
     if status == "idle":
-        phase = (time.time() * 1.5) % 1.0
-        brightness = 0.05 + 0.15 * abs(math.sin(phase * math.pi))
+        phase = time.time() * 0.4
+        brightness = 0.06 + 0.12 * (0.5 + 0.5 * math.sin(phase * math.pi))
         val = int(180 * brightness)
         for i in range(LED_COUNT):
             _strip[i] = (val, int(val * 0.55), 0)
