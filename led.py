@@ -159,24 +159,74 @@ def _render_frame():
 
 
 def _render_rainbow_chase():
-    """Render one frame of a continuous rainbow comet chase."""
+    """Render one frame of a Grateful Dead liquid light show.
+
+    Psychedelic oil-projection effect with the Dead's palette:
+    deep red, electric blue, warm amber, purple, tie-dye green.
+    Colors morph and blend organically with occasional lightning bolt flashes.
+    """
     if _strip is None:
         return
-    tail = 8
-    speed = 15.0  # LEDs per second
-    pos = (time.time() * speed) % LED_COUNT
-    hue_offset = int(time.time() * 40) % 256
+
+    t = time.time()
+
+    # Dead palette — rich, saturated concert poster colors
+    palette = [
+        (200, 30, 30),   # Steal Your Face red
+        (180, 50, 180),  # purple
+        (30, 80, 220),   # electric blue
+        (20, 160, 100),  # tie-dye green
+        (220, 140, 20),  # amber/gold
+        (200, 40, 100),  # hot pink
+        (30, 80, 220),   # electric blue again for weight
+        (200, 30, 30),   # red again to loop smoothly
+    ]
+
+    # Slow drift through the palette — each LED samples a different point
+    # on a smoothly interpolated color wave that shifts over time
+    wave_speed = 0.15   # how fast the colors drift
+    wave_stretch = 1.8  # how spread out colors are across the strip
+    breathe_speed = 0.7 # breathing/pulsing speed
 
     for i in range(LED_COUNT):
-        dist = (pos - i) % LED_COUNT
-        if dist < tail:
-            fade = 1.0 - (dist / tail)
-            fade = fade * fade  # quadratic falloff for smoother tail
-            hue = (hue_offset + i * 256 // LED_COUNT) % 256
-            r, g, b = _wheel(hue)
-            _strip[i] = (int(r * fade), int(g * fade), int(b * fade))
-        else:
-            _strip[i] = (0, 0, 0)
+        # Each LED's position in the color wave
+        pos = (i / LED_COUNT * wave_stretch + t * wave_speed) % 1.0
+        # Map to palette with smooth interpolation
+        scaled = pos * (len(palette) - 1)
+        idx = int(scaled)
+        frac = scaled - idx
+        c1 = palette[idx]
+        c2 = palette[min(idx + 1, len(palette) - 1)]
+        r = c1[0] + (c2[0] - c1[0]) * frac
+        g = c1[1] + (c2[1] - c1[1]) * frac
+        b = c1[2] + (c2[2] - c1[2]) * frac
+
+        # Organic breathing — overlapping sine waves at different frequencies
+        # gives that liquid, wobbly light-show feel
+        breathe = 0.5 + 0.25 * math.sin(t * breathe_speed + i * 0.4)
+        breathe += 0.15 * math.sin(t * breathe_speed * 1.7 - i * 0.25)
+        breathe += 0.1 * math.sin(t * breathe_speed * 0.6 + i * 0.8)
+        breathe = max(0.15, min(1.0, breathe))
+
+        _strip[i] = (int(r * breathe), int(g * breathe), int(b * breathe))
+
+    # Lightning bolt flash — Steal Your Face nod
+    # Brief white flash that races across the strip every ~8 seconds
+    bolt_cycle = t % 8.0
+    if bolt_cycle < 0.3:
+        bolt_pos = (bolt_cycle / 0.3) * LED_COUNT
+        for i in range(LED_COUNT):
+            dist = abs(i - bolt_pos)
+            if dist < 3:
+                flash = 1.0 - (dist / 3)
+                flash = flash * flash
+                existing = _strip[i]
+                _strip[i] = (
+                    min(255, int(existing[0] + 220 * flash)),
+                    min(255, int(existing[1] + 220 * flash)),
+                    min(255, int(existing[2] + 220 * flash)),
+                )
+
     _strip.show()
 
 
