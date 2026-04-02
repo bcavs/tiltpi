@@ -8,7 +8,7 @@ HOLD = 5  # seconds per state
 
 
 def main():
-    led.init()
+    led.start()  # init + start background render loop
 
     states = [
         ("Idle (amber breathing)", "idle", 0, False),
@@ -29,8 +29,7 @@ def main():
 
     print("\n  Celebration animation!")
     led.celebrate()
-    led._render_frame()
-    time.sleep(3)
+    time.sleep(6)  # give the render loop time to play it
 
     print("\n  Back to idle")
     led.update(0, "idle")
