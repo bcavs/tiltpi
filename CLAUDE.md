@@ -31,7 +31,9 @@ python generate_dummy_data.py
 
 **db.py** — SQLite database layer. All data operations go through this module. Uses WAL journal mode for concurrent access from the monitor and dashboard processes. Two tables: `brews` (lifecycle, config, stats) and `readings` (timestamped gravity/temp data linked to a brew). Handles auto-creation of brews, auto-splitting after 7-day gaps, and one-time migration from legacy JSON files.
 
-**tilt_monitor.py** — Async BLE scanner using `aioblescan`. Decodes Tilt iBeacon packets, maps UUIDs to colors, extracts gravity/temperature, writes readings to SQLite via `db.py`. Initializes database and runs JSON migration on startup.
+**tilt_monitor.py** — Async BLE scanner using `aioblescan`. Decodes Tilt iBeacon packets, maps UUIDs to colors, extracts gravity/temperature, writes readings to SQLite via `db.py`. Updates LED strip after each reading. Initializes database, runs JSON migration, and starts LED render loop on startup.
+
+**led.py** — NeoPixel LED strip driver for visual fermentation feedback. Progress fill (attenuation %), color-coded by status (green=active, amber=slowing, copper=complete), red flash for temperature alerts, rainbow celebration on completion. Runs a background render loop at ~30fps. Gracefully degrades if no NeoPixel hardware is present (GPIO 18, 24 LEDs). Requires `adafruit-circuitpython-neopixel` on the Pi.
 
 **dashboard.py** — Flask server on port 8080. API endpoints:
 - `GET /api/readings` — active brew readings (accepts `?brew_id=N` for historical)
