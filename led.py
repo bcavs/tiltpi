@@ -106,10 +106,8 @@ def update(progress, status, temp_alert=False):
 
 
 def celebrate():
-    """Trigger the completion celebration animation."""
+    """Enable the continuous celebration rainbow."""
     with _lock:
-        if _state["celebrating"]:
-            return
         _state["celebrating"] = True
 
 
@@ -125,9 +123,7 @@ def _render_frame():
         celebrating = _state["celebrating"]
 
     if celebrating:
-        _play_celebration()
-        with _lock:
-            _state["celebrating"] = False
+        _render_rainbow_chase()
         return
 
     # Temperature alert: red flash
@@ -162,43 +158,26 @@ def _render_frame():
     _strip.show()
 
 
-def _play_celebration():
-    """Rainbow comet sweep, then settle to full copper."""
+def _render_rainbow_chase():
+    """Render one frame of a continuous rainbow comet chase."""
     if _strip is None:
         return
+    tail = 8
+    speed = 15.0  # LEDs per second
+    pos = (time.time() * speed) % LED_COUNT
+    hue_offset = int(time.time() * 40) % 256
 
-    # Rainbow comet — two laps
-    tail = 6
-    steps = LED_COUNT * 2
-    for step in range(steps):
-        head = step % LED_COUNT
-        speed = 1.0 - (step / steps) * 0.6
-        for i in range(LED_COUNT):
-            dist = (head - i) % LED_COUNT
-            if dist < tail:
-                fade = 1.0 - (dist / tail)
-                hue = (step * 12 + i * 256 // LED_COUNT) % 256
-                r, g, b = _wheel(hue)
-                _strip[i] = (int(r * fade), int(g * fade), int(b * fade))
-            else:
-                _strip[i] = (0, 0, 0)
-        _strip.show()
-        time.sleep(0.025 * speed)
-
-    # Flash white then fade to copper
-    _strip.fill((180, 180, 180))
+    for i in range(LED_COUNT):
+        dist = (pos - i) % LED_COUNT
+        if dist < tail:
+            fade = 1.0 - (dist / tail)
+            fade = fade * fade  # quadratic falloff for smoother tail
+            hue = (hue_offset + i * 256 // LED_COUNT) % 256
+            r, g, b = _wheel(hue)
+            _strip[i] = (int(r * fade), int(g * fade), int(b * fade))
+        else:
+            _strip[i] = (0, 0, 0)
     _strip.show()
-    time.sleep(0.25)
-
-    copper = (140, 70, 15)
-    for step in range(20):
-        t = step / 19
-        r = int(180 + (copper[0] - 180) * t)
-        g = int(180 + (copper[1] - 180) * t)
-        b = int(180 + (copper[2] - 180) * t)
-        _strip.fill((max(0, r), max(0, g), max(0, b)))
-        _strip.show()
-        time.sleep(0.03)
 
 
 def _run_loop():
