@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>TiltPi</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -45,7 +45,7 @@
             position: relative;
             font-weight: 300;
             letter-spacing: 0.01em;
-            padding-bottom: var(--bottom-nav-height);
+            padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
         }
 
         body::after {
@@ -311,7 +311,7 @@
         /* ── History view ── */
         .history-view { max-width: 800px; margin: 0 auto; padding: 24px 16px; }
         .history-title { font-family: var(--font-display); color: var(--amber); font-size: 1.6rem; font-weight: 700; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--amber-dim); }
-        .brew-card { background: var(--ink-card); border: 1px solid rgba(200, 145, 58, 0.08); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; backdrop-filter: blur(12px); transition: border-color 0.3s, transform 0.2s; position: relative; overflow: hidden; }
+        .brew-card { background: var(--ink-card); border: 1px solid rgba(200, 145, 58, 0.08); border-radius: var(--radius); padding: 20px; margin-bottom: 12px; backdrop-filter: blur(12px); transition: border-color 0.3s, transform 0.2s; position: relative; overflow: hidden; cursor: pointer; }
         .brew-card::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 3px; background: var(--amber); opacity: 0; transition: opacity 0.3s; }
         .brew-card:hover { border-color: rgba(200, 145, 58, 0.2); transform: translateX(2px); }
         .brew-card:hover::before { opacity: 1; }
@@ -328,9 +328,11 @@
         /* ── Bottom Nav ── */
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; right: 0;
-            height: var(--bottom-nav-height);
-            background: rgba(26, 21, 14, 0.95);
+            height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            background: rgba(26, 21, 14, 0.98);
             backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             border-top: 1px solid rgba(200, 145, 58, 0.1);
             display: flex;
             z-index: 40;
@@ -503,22 +505,62 @@
     }
 
     /* ════════════════════════════════════
-       TABS
+       ROUTING
        ════════════════════════════════════ */
-    function switchTab(tab) {
-        currentTab = tab;
-        document.getElementById('tab-dashboard').classList.toggle('active', tab === 'dashboard');
-        document.getElementById('tab-history').classList.toggle('active', tab === 'history');
+    function navigate(hash, replace) {
+        if (replace) {
+            history.replaceState(null, '', hash);
+        } else {
+            history.pushState(null, '', hash);
+        }
+        handleRoute();
+    }
 
-        if (tab === 'dashboard') {
+    function handleRoute() {
+        const hash = window.location.hash || '#/';
+        if (hash === '#/history') {
+            currentTab = 'history';
+            document.getElementById('tab-dashboard').classList.remove('active');
+            document.getElementById('tab-history').classList.add('active');
+            if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+            showHistory();
+        } else if (hash.startsWith('#/brew/')) {
+            const id = parseInt(hash.split('/')[2]);
+            if (!isNaN(id)) {
+                currentTab = 'dashboard';
+                document.getElementById('tab-dashboard').classList.add('active');
+                document.getElementById('tab-history').classList.remove('active');
+                viewingBrewId = id;
+                updateBrewBar();
+                const brew = allBrews.find(b => b.id === viewingBrewId);
+                const isActive = !brew || brew.status === 'active';
+                if (isActive) {
+                    if (!pollInterval) pollInterval = setInterval(fetchData, 5000);
+                } else {
+                    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+                }
+                initialized = false;
+                fetchData();
+            }
+        } else {
+            currentTab = 'dashboard';
+            document.getElementById('tab-dashboard').classList.add('active');
+            document.getElementById('tab-history').classList.remove('active');
             viewingBrewId = null;
             updateBrewBar();
             initialized = false;
             if (!pollInterval) pollInterval = setInterval(fetchData, 5000);
             fetchData();
+        }
+    }
+
+    window.addEventListener('hashchange', handleRoute);
+
+    function switchTab(tab) {
+        if (tab === 'dashboard') {
+            navigate('#/');
         } else {
-            if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
-            showHistory();
+            navigate('#/history');
         }
     }
 
@@ -558,29 +600,10 @@
     function selectBrew(brewId) {
         document.getElementById('brew-picker-dropdown').classList.remove('open');
         if (!brewId && brewId !== 0) {
-            viewingBrewId = null;
+            navigate('#/');
         } else {
-            viewingBrewId = parseInt(brewId);
+            navigate('#/brew/' + parseInt(brewId));
         }
-
-        updateBrewBar();
-
-        // Switch to dashboard tab if on history
-        if (currentTab !== 'dashboard') {
-            currentTab = 'dashboard';
-            document.getElementById('tab-dashboard').classList.add('active');
-            document.getElementById('tab-history').classList.remove('active');
-        }
-
-        const brew = viewingBrewId ? allBrews.find(b => b.id === viewingBrewId) : null;
-        const isActive = !brew || brew.status === 'active';
-        if (isActive) {
-            if (!pollInterval) pollInterval = setInterval(fetchData, 5000);
-        } else {
-            if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
-        }
-        initialized = false;
-        fetchData();
     }
 
     function updateBrewBar() {
@@ -622,11 +645,9 @@
         if (!confirm('Start a new brew? This will end the current brew if one is active.')) return;
         try {
             await fetch('/api/brews/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
-            viewingBrewId = null;
             await loadBrews();
             await loadConfig();
-            initialized = false;
-            fetchData();
+            navigate('#/');
         } catch(e) { console.error('Failed to start brew:', e); }
     }
 
@@ -724,7 +745,7 @@
                 const color = escapeHtml(b.color || '');
 
                 html += `
-                <div class="brew-card">
+                <div class="brew-card" onclick="viewBrew(${b.id})">
                     <div class="brew-card-header">
                         <span class="brew-card-name">${name}</span>
                         <span class="brew-card-status ${b.status}">${b.status}</span>
@@ -738,9 +759,8 @@
                         ${b.abv ? `<span class="brew-card-stat">ABV: ${b.abv}%</span>` : ''}
                     </div>
                     <div class="brew-card-actions">
-                        <button class="btn btn-ghost btn-sm" onclick="viewBrew(${b.id})">View</button>
-                        <button class="btn btn-ghost btn-sm" onclick="window.location='/api/export.csv?brew_id=${b.id}'">Export CSV</button>
-                        <button class="btn btn-ghost btn-sm" onclick="deleteBrew(${b.id}, '${name.replace(/'/g, "\\'")}')" style="color:var(--danger)">Delete</button>
+                        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); window.location='/api/export.csv?brew_id=${b.id}'">Export CSV</button>
+                        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); deleteBrew(${b.id}, '${name.replace(/'/g, "\\'")}')" style="color:var(--danger)">Delete</button>
                     </div>
                 </div>`;
             });
@@ -761,7 +781,7 @@
     }
 
     function viewBrew(brewId) {
-        selectBrew(brewId);
+        navigate('#/brew/' + brewId);
     }
 
     /* ════════════════════════════════════
@@ -1027,8 +1047,7 @@
     async function init() {
         await loadConfig();
         await loadBrews();
-        fetchData();
-        pollInterval = setInterval(fetchData, 5000);
+        handleRoute();
     }
     init();
     </script>
